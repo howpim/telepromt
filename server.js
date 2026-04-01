@@ -47,6 +47,7 @@ let state = {
   position: 0,
   fontSize: 52,
   textPadding: 10,
+  lineHeight: 1.35,
   lastUpdate: Date.now(),
   displayW: 0,
   displayH: 0
@@ -164,6 +165,10 @@ wss.on('connection', (ws) => {
       case 'textPadding':
         state.textPadding = msg.textPadding;
         broadcastAll({ type: 'textPadding', textPadding: state.textPadding }, ws);
+        break;
+      case 'lineHeight':
+        state.lineHeight = msg.lineHeight;
+        broadcastAll({ type: 'lineHeight', lineHeight: state.lineHeight }, ws);
         break;
       case 'ping':
         sendTo(ws, { type: 'pong' });
