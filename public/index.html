@@ -313,9 +313,7 @@
       </div>
     </div>
     <div class="ctrl-mirror-cue"></div>
-    <div class="ctrl-mirror-dim paused" id="ctrlDim">
-      <span class="ctrl-mirror-dim-label" id="ctrlDimLabel">НЕТ ТЕКСТА</span>
-    </div>
+    <div class="ctrl-mirror-dim paused" id="ctrlDim"></div>
     <div class="ctrl-mirror-empty" id="ctrlEmpty">Нет текста — нажмите «Текст»</div>
   </div>
 
@@ -558,16 +556,7 @@ function updatePlayBtn() {
 function updateDim() {
   if (role !== 'controller') return;
   const dim = document.getElementById('ctrlDim');
-  const lbl = document.getElementById('ctrlDimLabel');
-  if (!state.text) {
-    dim.classList.add('paused');
-    if (lbl) lbl.textContent = 'НЕТ ТЕКСТА';
-  } else if (!state.playing) {
-    dim.classList.add('paused');
-    if (lbl) lbl.textContent = 'ПАУЗА';
-  } else {
-    dim.classList.remove('paused');
-  }
+  dim.classList.toggle('paused', !state.playing);
 }
 
 // ── JOIN ──
@@ -604,22 +593,19 @@ function setupMirrorGestures() {
     const dy = e.touches[0].clientY - startY;
     if (Math.abs(dy) > 8) {
       moved = true;
-      // scroll: negative dy = finger moves up = text moves forward
       const delta = -dy * (1 / MIRROR_SCALE) * 0.5;
       currentPos = Math.max(0, Math.min(totalHeight, currentPos + delta));
       startY = e.touches[0].clientY;
       applyScrollPos();
       updateProgress();
+      // broadcast live so displays follow in real time
+      ws?.send(JSON.stringify({ type: 'seek', position: currentPos }));
     }
   }, { passive: true });
 
   el.addEventListener('touchend', e => {
     if (!moved && Date.now() - startTime < 300) {
-      // TAP
       togglePlay();
-    } else if (moved) {
-      // sync position after swipe
-      ws?.send(JSON.stringify({ type: 'seek', position: currentPos }));
     }
   }, { passive: true });
 }
