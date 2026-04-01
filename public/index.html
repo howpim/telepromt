@@ -738,36 +738,45 @@ window.addEventListener('resize', () => {
 function initMirrorScale() {
   const mirror = document.getElementById('ctrlMirror');
   const wrap = document.getElementById('ctrlTextWrap');
-  const textEl = document.getElementById('ctrlText');
   if (!mirror || !wrap) return;
 
   // Use actual display dimensions if known, otherwise reasonable defaults
-  const dW = displayW || 390;  // iPhone portrait width
-  const dH = displayH || 844;  // iPhone portrait height
+  const dW = displayW || 390;
+  const dH = displayH || 844;
 
-  // The wrap must render at the exact same width as the display viewport
-  // so line breaks happen at the same place
+  // Mirror can take at most 45% of the controller's screen height
+  const maxMirrorH = window.innerHeight * 0.45;
+  // We also want to fit display width into mirror width
+  const mirrorW = mirror.offsetWidth || window.innerWidth;
+  const scaleByWidth = mirrorW / dW;
+  const scaleByHeight = maxMirrorH / dH;
+  // Use the smaller scale so the mirror fits both constraints
+  const scale = Math.min(scaleByWidth, scaleByHeight);
+
+  // The wrap renders at actual display width so line breaks match exactly
   wrap.style.width = dW + 'px';
-
-  // Padding matches display's default (32px), textPadding overrides are applied separately
   wrap.style.paddingLeft = '32px';
   wrap.style.paddingRight = '32px';
-
-  // Scale factor: fit display width into mirror width
-  const scale = mirror.offsetWidth / dW;
   wrap.style.transformOrigin = 'top left';
   wrap.dataset.scale = scale;
   window._mirrorScale = scale;
   window._displayH = dH;
 
-  // Set mirror height to show exactly one display screen worth of content
-  // mirrorHeight = dH * scale
+  // Mirror height = exactly one display screen, scaled
   const mirrorHeight = dH * scale;
   mirror.style.flex = 'none';
   mirror.style.height = mirrorHeight + 'px';
 
-  // Bottom padding on wrap must match display's 100vh equivalent
+  // Bottom padding matches display's 100vh equivalent
   wrap.style.paddingBottom = dH + 'px';
+
+  // If scaled content is narrower than mirror, center it
+  const scaledW = dW * scale;
+  if (scaledW < mirrorW) {
+    wrap.style.left = ((mirrorW - scaledW) / 2) + 'px';
+  } else {
+    wrap.style.left = '0px';
+  }
 
   calcHeight();
 }
