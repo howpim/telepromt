@@ -383,6 +383,7 @@ const WS_URL = location.protocol === 'https:'
 
 let ws = null, role = null;
 let state = { text: '', playing: false, speed: 50, position: 0, fontSize: 52 };
+let displayW = 0, displayH = 0; // real display viewport dimensions
 let animFrame = null, lastTimestamp = null;
 let currentPos = 0, totalHeight = 0;
 let isSeeking = false; // true while finger is on mirror
@@ -395,7 +396,15 @@ const MIRROR_SCALE = 0.32;
 // ── CONNECT ──
 function connect() {
   ws = new WebSocket(WS_URL);
-  ws.onopen = () => { setConnected(true); ws.send(JSON.stringify({ type: 'join', role })); };
+  ws.onopen = () => {
+    setConnected(true);
+    const msg = { type: 'join', role };
+    if (role === 'display') {
+      msg.displayW = window.innerWidth;
+      msg.displayH = window.innerHeight;
+    }
+    ws.send(JSON.stringify(msg));
+  };
   ws.onclose = () => { setConnected(false); setTimeout(connect, 2000); };
   ws.onmessage = e => handleMessage(JSON.parse(e.data));
 }
@@ -410,6 +419,11 @@ function setConnected(v) {
 function handleMessage(msg) {
   switch (msg.type) {
     case 'state': applyState(msg); break;
+    case 'displayDimensions':
+      displayW = msg.displayW;
+      displayH = msg.displayH;
+      if (role === 'controller') applyMirrorDimensions();
+      break;
 
     case 'play':
       state.playing = true; state.speed = msg.speed;
@@ -521,13 +535,16 @@ function applyFontSize() {
 }
 
 function calcHeight() {
-  // Always use ctrlTextWrap (unscaled) minus full screen height
-  // This makes totalHeight identical on controller and display
-  const w = document.getElementById('ctrlTextWrap');
-  if (w) totalHeight = Math.max(0, w.scrollHeight - window.innerHeight);
-  // Also sync from display wrap if available
-  const wd = document.getElementById('dispWrap');
-  if (wd && wd.scrollHeight > 0) totalHeight = Math.max(0, wd.scrollHeight - window.innerHeight);
+  if (role === 'display') {
+    const w = document.getElementById('dispWrap');
+    if (w) totalHeight = Math.max(0, w.scrollHeight - window.innerHeight);
+  } else {
+    // Controller: totalHeight must match display's totalHeight
+    // ctrlTextWrap is sized to displayW, scrollHeight gives same line breaks as display
+    const w = document.getElementById('ctrlTextWrap');
+    const h = displayH || window.innerHeight;
+    if (w) totalHeight = Math.max(0, w.scrollHeight - h);
+  }
 }
 
 function updateProgress() {
@@ -556,9 +573,6 @@ function joinAs(r) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(r === 'controller' ? 'screen-controller' : 'screen-display').classList.add('active');
   if (r === 'controller') {
-    // Width = full display width in unscaled space so layout matches display exactly
-    const wrap = document.getElementById('ctrlTextWrap');
-    wrap.style.width = window.innerWidth + 'px';
     setupMirrorGestures();
   }
   if (r === 'display') {
@@ -674,6 +688,16 @@ function loadFile(e) {
 }
 
 window.addEventListener('resize', calcHeight);
+
+function applyMirrorDimensions() {
+  if (!displayW || !displayH) return;
+  const wrap = document.getElementById('ctrlTextWrap');
+  if (!wrap) return;
+  // Set wrap to exact display dimensions (unscaled)
+  wrap.style.width = displayW + 'px';
+  // Recalc height based on display's scrollHeight
+  setTimeout(calcHeight, 80);
+}
 </script>
 </body>
 </html>
