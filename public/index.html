@@ -926,6 +926,15 @@ function closeEdit() {
 function sendText() {
   const text = document.getElementById('scriptInput').value.trim();
   if (!text) return;
+  // Apply locally on controller
+  state.position = 0;
+  state.playing = false;
+  currentPos = 0;
+  setText(text);
+  applyFontSize();
+  setTimeout(() => { calcHeight(); applyScrollPos(); updateProgress(); }, 80);
+  updatePlayBtn(); updateDim();
+  // Send to displays
   sendCommand({ type: 'setText', text });
   closeEdit();
 }
