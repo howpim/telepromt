@@ -416,21 +416,42 @@ let rtcReady = false; // true when at least one DataChannel is open
 
 // ── SEND COMMAND (WebRTC if available, WS fallback) ──
 function sendCommand(msg) {
+  // Enrich messages with full state so DataChannel messages are self-contained
+  // (WS messages get enriched by the server, but DC messages go direct)
+  const now = Date.now();
+  switch (msg.type) {
+    case 'play':
+      msg.position = currentPos;
+      msg.speed = state.speed;
+      msg.lastUpdate = now;
+      break;
+    case 'pause':
+      msg.position = msg.position != null ? msg.position : currentPos;
+      break;
+    case 'seek':
+      msg.position = msg.position != null ? msg.position : currentPos;
+      msg.playing = state.playing;
+      msg.lastUpdate = now;
+      break;
+    case 'speed':
+      msg.position = msg.position != null ? msg.position : currentPos;
+      msg.playing = state.playing;
+      msg.lastUpdate = now;
+      break;
+  }
+
   const data = JSON.stringify(msg);
 
   if (role === 'controller') {
     // Send via DataChannel to all connected displays
-    let sentViaRTC = false;
     peers.forEach(peer => {
       if (peer.dc && peer.dc.readyState === 'open') {
         peer.dc.send(data);
-        sentViaRTC = true;
       }
     });
     // Always send via WS too (for server state sync + fallback)
     ws?.send(data);
   } else {
-    // Display shouldn't normally send commands, but just in case
     ws?.send(data);
   }
 }
@@ -459,12 +480,11 @@ function connect() {
       handleSignaling(msg);
       return;
     }
-    // On display with active RTC: only accept 'state' via WS (initial sync), skip command duplicates
-    if (role === 'display' && rtcReady) {
+    // On display: only skip WS commands if DataChannel is genuinely open right now
+    if (role === 'display' && displayDC && displayDC.readyState === 'open') {
       if (msg.type === 'state' || msg.type === 'displayDimensions') {
         handleMessage(msg);
       }
-      // else: skip — we'll get it via DataChannel
       return;
     }
     handleMessage(msg);
@@ -548,6 +568,9 @@ async function createPeerConnection(displayId) {
 // Display: handle incoming offer from controller
 async function handleOffer(msg) {
   if (displayPC) displayPC.close();
+  displayPC = null;
+  displayDC = null;
+  rtcReady = false;
 
   const pc = new RTCPeerConnection(RTC_CONFIG);
   displayPC = pc;
