@@ -86,6 +86,7 @@
     color: #fff;
     white-space: pre-wrap;
     word-break: break-word;
+    width: 500px; margin: 0 auto;
   }
   /* Cue line in mirror */
   .ctrl-mirror-cue {
@@ -223,6 +224,7 @@
     font-family: 'IBM Plex Sans', sans-serif; font-weight: 300;
     font-size: 52px; line-height: 1.35; color: #fff;
     white-space: pre-wrap; word-break: break-word;
+    width: 600px; margin: 0 auto;
   }
   .disp-cue {
     position: absolute; top: 38%; left: 0; right: 0;
@@ -335,6 +337,11 @@
         <input type="range" id="fontSlider" min="24" max="120" value="52" oninput="onFontSize(this.value)">
         <span class="ctrl-slider-val white" id="fontVal">52</span>
       </div>
+      <div class="ctrl-slider-row">
+        <span class="ctrl-slider-label">Поля</span>
+        <input type="range" id="paddingSlider" min="5" max="35" value="10" oninput="onTextPadding(this.value)">
+        <span class="ctrl-slider-val white" id="paddingVal">10%</span>
+      </div>
     </div>
 
     <!-- Action buttons -->
@@ -382,8 +389,8 @@ const WS_URL = location.protocol === 'https:'
   ? `wss://${location.host}` : `ws://${location.host}`;
 
 let ws = null, role = null;
-let state = { text: '', playing: false, speed: 50, position: 0, fontSize: 52 };
-let displayW = 0, displayH = 0; // real display viewport dimensions
+let state = { text: '', playing: false, speed: 50, position: 0, fontSize: 52, textWidth: 600 };
+let displayW = 0, displayH = 0;
 let animFrame = null, lastTimestamp = null;
 let currentPos = 0, totalHeight = 0;
 let isSeeking = false; // true while finger is on mirror
@@ -422,7 +429,7 @@ function handleMessage(msg) {
     case 'displayDimensions':
       displayW = msg.displayW;
       displayH = msg.displayH;
-      if (role === 'controller') applyMirrorDimensions();
+      if (role === 'controller') { applyMirrorDimensions(); initMirrorScale(); }
       break;
 
     case 'play':
@@ -457,6 +464,9 @@ function handleMessage(msg) {
 
     case 'fontSize':
       state.fontSize = msg.fontSize; applyFontSize(); break;
+
+    case 'textPadding':
+      state.textPadding = msg.textPadding; applyTextPadding(); break;
   }
 }
 
@@ -471,7 +481,12 @@ function applyState(s) {
     document.getElementById('speedVal').textContent = s.speed;
     document.getElementById('fontSlider').value = s.fontSize;
     document.getElementById('fontVal').textContent = s.fontSize;
+    if (s.textPadding != null) {
+      document.getElementById('paddingSlider').value = s.textPadding;
+      document.getElementById('paddingVal').textContent = s.textPadding + '%';
+    }
   }
+  applyTextPadding();
   updatePlayBtn(); updateDim();
   if (s.playing) { lastTimestamp = performance.now(); startScroll(); }
 }
@@ -517,11 +532,10 @@ function applyScrollPos() {
   const dispWrap = document.getElementById('dispWrap');
   if (dispWrap) dispWrap.style.transform = `translateY(${-currentPos}px)`;
 
-  // Mirror: translate first (in unscaled coords), then scale from top-left
-  // translateY(-pos) then scale(S) = the same visible slice as the display
   const ctrlWrap = document.getElementById('ctrlTextWrap');
   if (ctrlWrap) {
-    ctrlWrap.style.transform = `scale(${MIRROR_SCALE}) translateY(${-currentPos}px)`;
+    const s = window._mirrorScale || MIRROR_SCALE;
+    ctrlWrap.style.transform = `scale(${s}) translateY(${-currentPos}px)`;
   }
 }
 
@@ -539,11 +553,10 @@ function calcHeight() {
     const w = document.getElementById('dispWrap');
     if (w) totalHeight = Math.max(0, w.scrollHeight - window.innerHeight);
   } else {
-    // Controller: totalHeight must match display's totalHeight
-    // ctrlTextWrap is sized to displayW, scrollHeight gives same line breaks as display
+    // Controller mirror is rendered at 844px wide (landscape), 390px tall viewport
     const w = document.getElementById('ctrlTextWrap');
-    const h = displayH || window.innerHeight;
-    if (w) totalHeight = Math.max(0, w.scrollHeight - h);
+    const dispHeight = displayH || 375;
+    if (w) totalHeight = Math.max(0, w.scrollHeight - dispHeight);
   }
 }
 
@@ -573,6 +586,9 @@ function joinAs(r) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(r === 'controller' ? 'screen-controller' : 'screen-display').classList.add('active');
   if (r === 'controller') {
+    // Mirror wrap: use a standard wide viewport so text centering is consistent
+    const wrap = document.getElementById('ctrlTextWrap');
+    if (wrap) wrap.style.width = '667px'; // narrowest CSS landscape viewport
     setupMirrorGestures();
   }
   if (r === 'display') {
@@ -647,6 +663,29 @@ function onFontSize(val) {
   setTimeout(calcHeight, 80);
 }
 
+function onTextPadding(val) {
+  state.textPadding = +val;
+  document.getElementById('paddingVal').textContent = val + '%';
+  applyTextPadding();
+  ws?.send(JSON.stringify({ type: 'textPadding', textPadding: +val }));
+  setTimeout(calcHeight, 80);
+}
+
+function applyTextPadding() {
+  const p = state.textPadding + '%';
+  // Apply padding to the wraps (left+right), text fills 100% of wrap
+  const wraps = [
+    document.getElementById('ctrlTextWrap'),
+    document.getElementById('dispWrap')
+  ];
+  wraps.forEach(w => {
+    if (w) {
+      w.style.paddingLeft = p;
+      w.style.paddingRight = p;
+    }
+  });
+}
+
 function seekBack() {
   currentPos = Math.max(0, currentPos - window.innerHeight * 0.8);
   ws?.send(JSON.stringify({ type: 'seek', position: currentPos }));
@@ -688,6 +727,24 @@ function loadFile(e) {
 }
 
 window.addEventListener('resize', calcHeight);
+
+function initMirrorScale() {
+  const mirror = document.getElementById('ctrlMirror');
+  const wrap = document.getElementById('ctrlTextWrap');
+  if (!mirror || !wrap) return;
+  // Display is landscape: width = long side, height = short side
+  // Use displayW/displayH if known, otherwise assume standard landscape
+  const dW = displayW || 844;
+  const dH = displayH || 390;
+  const scale = mirror.offsetWidth / dW;
+  wrap.style.width = dW + 'px';
+  wrap.style.transformOrigin = 'top left';
+  wrap.dataset.scale = scale;
+  // Store for scroll transform
+  window._mirrorScale = scale;
+  window._displayH = dH;
+  calcHeight();
+}
 
 function applyMirrorDimensions() {
   if (!displayW || !displayH) return;
