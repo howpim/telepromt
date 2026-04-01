@@ -15,391 +15,266 @@
   :root {
     --bg: #0a0a0a;
     --surface: #141414;
-    --border: #2a2a2a;
+    --border: #222;
     --accent: #e8ff00;
-    --accent2: #ff4d00;
     --text: #f0f0f0;
-    --muted: #555;
+    --muted: #444;
     --green: #00ff88;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: #000; color: var(--text); font-family: 'IBM Plex Sans', sans-serif; height: 100dvh; overflow: hidden; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'IBM Plex Sans', sans-serif;
-    min-height: 100dvh;
-    overflow: hidden;
-  }
-
-  /* ── SCREENS ── */
-  .screen { display: none; width: 100%; min-height: 100dvh; }
+  .screen { display: none; width: 100%; height: 100dvh; }
   .screen.active { display: flex; flex-direction: column; }
 
-  /* ── ROLE SELECT ── */
+  /* ══ ROLE SELECT ══ */
   #screen-role {
-    align-items: center;
-    justify-content: center;
-    gap: 0;
-    background: var(--bg);
-    position: relative;
-    overflow: hidden;
+    background: var(--bg); align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
   }
   #screen-role::before {
-    content: 'PROMPTER';
-    position: absolute;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 38vw;
-    color: #111;
-    letter-spacing: -2vw;
-    line-height: 1;
-    user-select: none;
-    pointer-events: none;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    content: 'PROMPTER'; position: absolute;
+    font-family: 'Bebas Neue', sans-serif; font-size: 38vw;
+    color: #111; letter-spacing: -2vw; line-height: 1;
+    user-select: none; pointer-events: none;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
   }
-  .role-inner {
-    position: relative;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 32px;
-    padding: 40px 24px;
-  }
-  .role-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 52px;
-    letter-spacing: 4px;
-    color: var(--accent);
-    text-align: center;
-    line-height: 1;
-  }
-  .role-subtitle {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    text-align: center;
-  }
+  .role-inner { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 32px; padding: 40px 24px; }
+  .role-title { font-family: 'Bebas Neue', sans-serif; font-size: 52px; letter-spacing: 4px; color: var(--accent); text-align: center; line-height: 1; }
+  .role-subtitle { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; text-align: center; }
   .role-buttons { display: flex; flex-direction: column; gap: 12px; width: 260px; }
   .btn-role {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 13px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    padding: 18px 24px;
-    cursor: pointer;
-    transition: all 0.15s;
-    text-align: left;
-    display: flex;
-    align-items: center;
-    gap: 16px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    font-family: 'IBM Plex Mono', monospace; font-size: 13px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 18px 24px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 16px;
   }
-  .btn-role:active { transform: scale(0.97); }
+  .btn-role:active { opacity: 0.7; }
   .btn-role.controller { border-color: var(--accent); }
-  .btn-role.controller:active { background: var(--accent); color: var(--bg); }
-  .btn-role.display { border-color: var(--border); }
-  .btn-role.display:active { background: var(--surface); }
   .btn-role-icon { font-size: 22px; }
-  .btn-role-text { display: flex; flex-direction: column; gap: 2px; }
+  .btn-role-text { display: flex; flex-direction: column; gap: 3px; }
   .btn-role-label { font-size: 13px; letter-spacing: 2px; }
   .btn-role-desc { font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: none; font-family: 'IBM Plex Sans', sans-serif; }
 
-  /* ── STATUS DOT ── */
-  .status-bar {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: var(--border);
-    z-index: 100;
-  }
-  .status-bar-fill {
-    height: 100%;
-    width: 0%;
-    background: var(--accent);
-    transition: width 0.3s;
-  }
+  /* ══ CONTROLLER ══ */
+  #screen-controller { background: var(--bg); }
 
-  /* ── CONTROLLER ── */
-  #screen-controller {
-    background: var(--bg);
-    flex-direction: column;
-  }
-  .ctrl-header {
-    padding: 16px 20px 12px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-  }
-  .ctrl-logo {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 22px;
-    letter-spacing: 3px;
-    color: var(--accent);
-  }
-  .conn-status {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--muted);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .conn-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--muted);
-    transition: background 0.3s;
-  }
-  .conn-dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); }
-
-  /* Text input area */
-  .text-area-wrap {
-    flex: 1;
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    overflow: hidden;
-    min-height: 0;
-  }
-  .text-area-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--muted);
-    text-transform: uppercase;
-    flex-shrink: 0;
-  }
-  #scriptInput {
-    flex: 1;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 15px;
-    line-height: 1.6;
-    padding: 14px;
-    resize: none;
-    outline: none;
-    border-radius: 0;
-    -webkit-appearance: none;
-    min-height: 0;
-    transition: border-color 0.2s;
-  }
-  #scriptInput:focus { border-color: var(--accent); }
-  #scriptInput::placeholder { color: var(--muted); }
-
-  .load-row {
-    display: flex;
-    gap: 10px;
-    flex-shrink: 0;
-  }
-  .btn-load {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    padding: 10px 14px;
-    cursor: pointer;
-    flex: 1;
-    transition: all 0.15s;
-  }
-  .btn-load:active { border-color: var(--accent); color: var(--accent); }
-
-  /* Controls panel */
-  .ctrl-panel {
-    border-top: 1px solid var(--border);
-    padding: 16px 20px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  /* Speed */
-  .speed-row {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-  .speed-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--muted);
-    text-transform: uppercase;
-    min-width: 50px;
-  }
-  .speed-value {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    color: var(--accent);
-    min-width: 48px;
-    text-align: right;
-  }
-  input[type=range] {
-    flex: 1;
-    -webkit-appearance: none;
-    appearance: none;
-    height: 3px;
-    background: var(--border);
-    outline: none;
-    border-radius: 0;
-  }
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 22px; height: 22px;
-    background: var(--accent);
-    border-radius: 0;
-    cursor: pointer;
-  }
-
-  /* Font size row */
-  .font-row {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-  .font-label {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--muted);
-    text-transform: uppercase;
-    min-width: 50px;
-  }
-  .font-value {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 28px;
-    color: var(--text);
-    min-width: 48px;
-    text-align: right;
-  }
-
-  /* Transport buttons */
-  .transport {
-    display: grid;
-    grid-template-columns: 1fr 2fr 1fr;
-    gap: 10px;
-  }
-  .btn-transport {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-size: 22px;
-    padding: 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.1s;
-    -webkit-appearance: none;
-    border-radius: 0;
-    touch-action: manipulation;
-  }
-  .btn-transport:active { transform: scale(0.94); background: var(--border); }
-  #btnPlay {
-    border-color: var(--accent);
-    font-size: 28px;
-  }
-  #btnPlay.playing {
-    background: var(--accent);
-    color: var(--bg);
-  }
-
-  /* Seek strip */
-  .seek-strip {
+  /* Mirror — top portion */
+  .ctrl-mirror {
+    flex: 0 0 42%;
     position: relative;
-    height: 36px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    cursor: pointer;
-    overflow: hidden;
-  }
-  .seek-fill {
-    height: 100%;
-    background: var(--accent);
-    opacity: 0.15;
-    transition: width 0.3s linear;
-    pointer-events: none;
-  }
-  .seek-label {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--muted);
-    pointer-events: none;
-  }
-
-  /* ── DISPLAY ── */
-  #screen-display {
     background: #000;
-    position: relative;
     overflow: hidden;
-    touch-action: none;
-    user-select: none;
+    border-bottom: 1px solid var(--border);
   }
-  .display-text-wrap {
+  /* Scale-down the text to fit the mirror */
+  .ctrl-mirror-inner {
     position: absolute;
-    width: 100%;
-    padding: 0px 32px 100vh 32px;
+    inset: 0;
+    overflow: hidden;
+  }
+  .ctrl-mirror-text-wrap {
+    position: absolute;
+    width: calc(100% / var(--mirror-scale, 0.35));
+    transform-origin: top left;
+    transform: scale(var(--mirror-scale, 0.35));
+    padding: 0 32px 200px 32px;
     will-change: transform;
   }
-  #displayText {
+  .ctrl-mirror-text {
     font-family: 'IBM Plex Sans', sans-serif;
     font-weight: 300;
-    font-size: 52px;
     line-height: 1.35;
-    color: #ffffff;
+    color: #fff;
     white-space: pre-wrap;
     word-break: break-word;
   }
-  .display-cue {
-    position: fixed;
-    top: 38%;
-    left: 0; right: 0;
-    height: 2px;
-    background: var(--accent);
-    opacity: 0.4;
-    pointer-events: none;
-    z-index: 11;
+  /* Cue line in mirror */
+  .ctrl-mirror-cue {
+    position: absolute;
+    top: 38%; left: 0; right: 0;
+    height: 1px; background: var(--accent); opacity: 0.4;
+    pointer-events: none; z-index: 2;
   }
-  .display-waiting {
-    position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 3px;
-    color: #333;
-    text-transform: uppercase;
-    z-index: 5;
+  /* Dim overlay when paused */
+  .ctrl-mirror-dim {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.45);
+    opacity: 0; transition: opacity 0.2s;
+    pointer-events: none; z-index: 3;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ctrl-mirror-dim.paused { opacity: 1; }
+  .ctrl-mirror-dim-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; letter-spacing: 4px; color: var(--accent);
+  }
+  /* No text state */
+  .ctrl-mirror-empty {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    letter-spacing: 2px; color: var(--muted); text-transform: uppercase;
+    pointer-events: none;
+  }
+  /* Progress bar at top of mirror */
+  .ctrl-mirror-progress {
+    position: absolute; top: 0; left: 0; right: 0; height: 2px; z-index: 5;
+    background: transparent;
+  }
+  .ctrl-mirror-progress-fill {
+    height: 100%; width: 0%; background: var(--accent);
+    transition: width 0.2s linear;
   }
 
-  /* ── FILE INPUT hidden ── */
-  #fileInput { display: none; }
+  /* Panel — bottom portion */
+  .ctrl-panel {
+    flex: 1;
+    display: flex; flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  /* Play button — big, full width */
+  .ctrl-play-btn {
+    width: 100%; flex: 0 0 72px;
+    background: transparent; border: none; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    cursor: pointer; -webkit-appearance: none;
+    transition: background 0.1s;
+  }
+  .ctrl-play-btn:active { background: rgba(232,255,0,0.08); }
+  .ctrl-play-btn.playing { background: rgba(232,255,0,0.05); }
+  .ctrl-play-icon { font-size: 28px; }
+  .ctrl-play-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; letter-spacing: 4px; color: var(--accent);
+  }
+
+  /* Sliders area */
+  .ctrl-sliders {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: center; gap: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .ctrl-slider-row {
+    flex: 1; display: flex; align-items: center; gap: 14px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .ctrl-slider-row:last-child { border-bottom: none; }
+  .ctrl-slider-label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+    letter-spacing: 2px; color: var(--muted); text-transform: uppercase;
+    min-width: 54px;
+  }
+  .ctrl-slider-val {
+    font-family: 'Bebas Neue', sans-serif; font-size: 26px;
+    min-width: 44px; text-align: right;
+  }
+  .ctrl-slider-val.accent { color: var(--accent); }
+  .ctrl-slider-val.white { color: var(--text); }
+  input[type=range] {
+    flex: 1; -webkit-appearance: none; appearance: none;
+    height: 3px; background: var(--border); outline: none; border-radius: 0;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 22px; height: 22px;
+    background: var(--accent); border-radius: 0; cursor: pointer;
+  }
+
+  /* Bottom action row */
+  .ctrl-actions {
+    flex: 0 0 52px; display: flex;
+  }
+  .ctrl-action-btn {
+    flex: 1; background: transparent; border: none;
+    border-right: 1px solid var(--border);
+    color: var(--muted); font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+    -webkit-appearance: none;
+  }
+  .ctrl-action-btn:last-child { border-right: none; }
+  .ctrl-action-btn:active { background: rgba(255,255,255,0.05); color: var(--text); }
+
+  /* Conn status row */
+  .ctrl-conn-row {
+    flex: 0 0 28px; display: flex; align-items: center;
+    padding: 0 16px; gap: 8px; border-top: 1px solid var(--border);
+  }
+  .conn-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--muted); transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  .conn-dot.online { background: var(--green); box-shadow: 0 0 5px var(--green); }
+  .conn-label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 9px;
+    letter-spacing: 2px; color: var(--muted); text-transform: uppercase;
+  }
+
+  /* ══ DISPLAY ══ */
+  #screen-display { background: #000; }
+  .disp-wrap {
+    position: absolute; width: 100%;
+    padding: 0 32px 100vh 32px;
+    will-change: transform;
+  }
+  .disp-text {
+    font-family: 'IBM Plex Sans', sans-serif; font-weight: 300;
+    font-size: 52px; line-height: 1.35; color: #fff;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .disp-cue {
+    position: absolute; top: 38%; left: 0; right: 0;
+    height: 2px; background: var(--accent); opacity: 0.35;
+    pointer-events: none; z-index: 5;
+  }
+  .disp-waiting {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+    letter-spacing: 3px; color: #2a2a2a; text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  /* ══ EDIT MODAL ══ */
+  #editModal {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: var(--bg); flex-direction: column;
+  }
+  #editModal.active { display: flex; }
+  .edit-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  .edit-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; color: var(--accent); }
+  .edit-close {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; padding: 8px 14px; cursor: pointer;
+  }
+  .edit-close:active { border-color: var(--accent); color: var(--accent); }
+  #scriptInput {
+    flex: 1; background: var(--surface); border: none; color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 15px; line-height: 1.7;
+    padding: 16px 20px; resize: none; outline: none; -webkit-appearance: none; min-height: 0;
+  }
+  #scriptInput::placeholder { color: var(--muted); }
+  .edit-footer {
+    padding: 12px 20px; border-top: 1px solid var(--border);
+    display: flex; gap: 10px; flex-shrink: 0;
+  }
+  .edit-btn {
+    flex: 1; background: transparent; border: 1px solid var(--border); color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; padding: 12px; cursor: pointer;
+  }
+  .edit-btn.primary { border-color: var(--accent); color: var(--accent); background: rgba(232,255,0,0.05); }
+  .edit-btn:active { opacity: 0.7; }
 </style>
 </head>
 <body>
-
-<div class="status-bar"><div class="status-bar-fill" id="statusBar"></div></div>
 
 <!-- ROLE SELECT -->
 <div id="screen-role" class="screen active">
@@ -413,10 +288,10 @@
         <span class="btn-role-icon">🎛</span>
         <span class="btn-role-text">
           <span class="btn-role-label">Контроллер</span>
-          <span class="btn-role-desc">Управление, текст, скорость</span>
+          <span class="btn-role-desc">Миниатюра + управление</span>
         </span>
       </button>
-      <button class="btn-role display" onclick="joinAs('display')">
+      <button class="btn-role" onclick="joinAs('display')">
         <span class="btn-role-icon">📺</span>
         <span class="btn-role-text">
           <span class="btn-role-label">Дисплей</span>
@@ -429,302 +304,299 @@
 
 <!-- CONTROLLER -->
 <div id="screen-controller" class="screen">
-  <div class="ctrl-header">
-    <div class="ctrl-logo">PROMPTER</div>
-    <div class="conn-status">
-      <div class="conn-dot" id="connDot"></div>
-      <span id="connLabel">OFFLINE</span>
+  <!-- Mirror top -->
+  <div class="ctrl-mirror">
+    <div class="ctrl-mirror-progress"><div class="ctrl-mirror-progress-fill" id="ctrlProgress"></div></div>
+    <div class="ctrl-mirror-inner">
+      <div class="ctrl-mirror-text-wrap" id="ctrlTextWrap">
+        <div class="ctrl-mirror-text" id="ctrlText"></div>
+      </div>
     </div>
+    <div class="ctrl-mirror-cue"></div>
+    <div class="ctrl-mirror-dim paused" id="ctrlDim">
+      <span class="ctrl-mirror-dim-label" id="ctrlDimLabel">НЕТ ТЕКСТА</span>
+    </div>
+    <div class="ctrl-mirror-empty" id="ctrlEmpty">Нет текста — нажмите «Текст»</div>
   </div>
 
-  <div class="text-area-wrap">
-    <div class="text-area-label">Текст скрипта</div>
-    <textarea id="scriptInput" placeholder="Вставьте или введите текст..." spellcheck="false"></textarea>
-    <div class="load-row">
-      <button class="btn-load" onclick="document.getElementById('fileInput').click()">📁 Загрузить .txt</button>
-      <button class="btn-load" onclick="sendText()">↑ Отправить</button>
-    </div>
-  </div>
-  <input type="file" id="fileInput" accept=".txt" onchange="loadFile(event)">
-
+  <!-- Controls bottom -->
   <div class="ctrl-panel">
-    <!-- Speed -->
-    <div class="speed-row">
-      <span class="speed-label">Скорость</span>
-      <input type="range" id="speedSlider" min="10" max="300" value="50" oninput="onSpeed(this.value)">
-      <span class="speed-value" id="speedVal">50</span>
+    <!-- Play/Pause -->
+    <button class="ctrl-play-btn" id="playBtn" onclick="togglePlay()">
+      <span class="ctrl-play-icon" id="playIcon">▶</span>
+      <span class="ctrl-play-label" id="playLabel">СТАРТ</span>
+    </button>
+
+    <!-- Sliders -->
+    <div class="ctrl-sliders">
+      <div class="ctrl-slider-row">
+        <span class="ctrl-slider-label">Скорость</span>
+        <input type="range" id="speedSlider" min="10" max="300" value="50" oninput="onSpeed(this.value)">
+        <span class="ctrl-slider-val accent" id="speedVal">50</span>
+      </div>
+      <div class="ctrl-slider-row">
+        <span class="ctrl-slider-label">Размер</span>
+        <input type="range" id="fontSlider" min="24" max="120" value="52" oninput="onFontSize(this.value)">
+        <span class="ctrl-slider-val white" id="fontVal">52</span>
+      </div>
     </div>
 
-    <!-- Font size -->
-    <div class="font-row">
-      <span class="font-label">Размер</span>
-      <input type="range" id="fontSlider" min="24" max="120" value="52" oninput="onFontSize(this.value)">
-      <span class="font-value" id="fontVal">52</span>
+    <!-- Action buttons -->
+    <div class="ctrl-actions">
+      <button class="ctrl-action-btn" onclick="openEdit()">✏️ Текст</button>
+      <button class="ctrl-action-btn" onclick="seekBack()">⏮ Назад</button>
+      <button class="ctrl-action-btn" onclick="seekFwd()">Вперёд ⏭</button>
+      <button class="ctrl-action-btn" onclick="document.getElementById('fileInput').click()">📁 Файл</button>
     </div>
 
-    <!-- Seek -->
-    <div class="seek-strip" id="seekStrip" ontouchstart="onSeekTouch(event)" onclick="onSeekClick(event)">
-      <div class="seek-fill" id="seekFill"></div>
-      <span class="seek-label">ПОЗИЦИЯ</span>
-    </div>
-
-    <!-- Transport -->
-    <div class="transport">
-      <button class="btn-transport" onclick="rewind()">⏮</button>
-      <button class="btn-transport" id="btnPlay" onclick="togglePlay()">▶</button>
-      <button class="btn-transport" onclick="forward()">⏭</button>
+    <!-- Connection status -->
+    <div class="ctrl-conn-row">
+      <div class="conn-dot" id="connDot"></div>
+      <span class="conn-label" id="connLabel">ОФЛАЙН</span>
     </div>
   </div>
 </div>
 
 <!-- DISPLAY -->
-<div id="screen-display" class="screen">
-  <div class="display-cue"></div>
-  <div class="display-text-wrap" id="textWrap">
-    <div id="displayText"></div>
+<div id="screen-display" class="screen" style="position:relative; overflow:hidden;">
+  <div class="disp-wrap" id="dispWrap">
+    <div class="disp-text" id="dispText"></div>
   </div>
-  <div class="display-waiting" id="displayWaiting">ОЖИДАНИЕ СИГНАЛА...</div>
+  <div class="disp-cue"></div>
+  <div class="disp-waiting" id="dispWaiting">ОЖИДАНИЕ СИГНАЛА...</div>
 </div>
 
-<script>
-// ── CONFIG ──
-const WS_URL = location.protocol === 'https:' 
-  ? `wss://${location.host}` 
-  : `ws://${location.host}`;
+<!-- EDIT MODAL -->
+<div id="editModal">
+  <div class="edit-header">
+    <div class="edit-title">Текст скрипта</div>
+    <button class="edit-close" onclick="closeEdit()">✕</button>
+  </div>
+  <textarea id="scriptInput" placeholder="Вставьте или введите текст..."></textarea>
+  <div class="edit-footer">
+    <button class="edit-btn" onclick="closeEdit()">Отмена</button>
+    <button class="edit-btn primary" onclick="sendText()">↑ Отправить на все</button>
+  </div>
+</div>
 
-// ── STATE ──
-let ws = null;
-let role = null;
+<input type="file" id="fileInput" accept=".txt" style="display:none" onchange="loadFile(event)">
+
+<script>
+const WS_URL = location.protocol === 'https:'
+  ? `wss://${location.host}` : `ws://${location.host}`;
+
+let ws = null, role = null;
 let state = { text: '', playing: false, speed: 50, position: 0, fontSize: 52 };
-let animFrame = null;
-let lastTimestamp = null;
-let currentPos = 0;
-let totalHeight = 0;
+let animFrame = null, lastTimestamp = null;
+let currentPos = 0, totalHeight = 0;
+
+// ── MIRROR SCALE ──
+// The mirror shows the text at a reduced scale so it fits the top half
+// We compute scale so that the full display width maps to the mirror width
+const MIRROR_SCALE = 0.32;
 
 // ── CONNECT ──
 function connect() {
   ws = new WebSocket(WS_URL);
-
-  ws.onopen = () => {
-    setConnected(true);
-    ws.send(JSON.stringify({ type: 'join', role }));
-  };
-
-  ws.onclose = () => {
-    setConnected(false);
-    setTimeout(connect, 2000);
-  };
-
-  ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
-    handleMessage(msg);
-  };
+  ws.onopen = () => { setConnected(true); ws.send(JSON.stringify({ type: 'join', role })); };
+  ws.onclose = () => { setConnected(false); setTimeout(connect, 2000); };
+  ws.onmessage = e => handleMessage(JSON.parse(e.data));
 }
 
 function setConnected(v) {
   if (role !== 'controller') return;
-  const dot = document.getElementById('connDot');
-  const lbl = document.getElementById('connLabel');
-  if (v) { dot.classList.add('online'); lbl.textContent = 'ОНЛАЙН'; }
-  else { dot.classList.remove('online'); lbl.textContent = 'ОФЛАЙН'; }
+  document.getElementById('connDot').classList.toggle('online', v);
+  document.getElementById('connLabel').textContent = v ? 'ОНЛАЙН' : 'ОФЛАЙН';
 }
 
-// ── MESSAGE HANDLER ──
+// ── MESSAGES ──
 function handleMessage(msg) {
   switch (msg.type) {
-    case 'state':
-      applyState(msg);
-      break;
+    case 'state': applyState(msg); break;
+
     case 'play':
-      state.playing = true;
-      state.speed = msg.speed;
-      // Display uses its own currentPos to avoid jump on resume
+      state.playing = true; state.speed = msg.speed;
       if (role === 'controller') currentPos = msg.position;
       lastTimestamp = performance.now();
-      startScroll();
-      updatePlayBtn();
+      startScroll(); updatePlayBtn(); updateDim();
       break;
+
     case 'pause':
       state.playing = false;
-      // Display keeps its own currentPos to avoid jump
-      // Controller takes server position for seek bar accuracy
       if (role === 'controller') currentPos = msg.position;
-      stopScroll();
-      applyScrollPos();
-      updatePlayBtn();
-      updateSeek();
+      stopScroll(); applyScrollPos(); updatePlayBtn(); updateDim(); updateProgress();
       break;
+
     case 'seek':
       currentPos = msg.position;
       lastTimestamp = performance.now() - (Date.now() - msg.lastUpdate);
-      if (msg.playing) startScroll();
-      else applyScrollPos();
-      updateSeek();
+      if (msg.playing) startScroll(); else applyScrollPos();
+      updateProgress();
       break;
+
     case 'speed':
-      state.speed = msg.speed;
-      currentPos = msg.position;
+      state.speed = msg.speed; currentPos = msg.position;
       lastTimestamp = performance.now() - (Date.now() - msg.lastUpdate);
       if (role === 'controller') {
         document.getElementById('speedSlider').value = msg.speed;
         document.getElementById('speedVal').textContent = msg.speed;
       }
       break;
+
     case 'fontSize':
-      state.fontSize = msg.fontSize;
-      applyFontSize();
-      break;
+      state.fontSize = msg.fontSize; applyFontSize(); break;
   }
 }
 
 function applyState(s) {
   state = { ...state, ...s };
   currentPos = s.position;
-  if (role === 'display') {
-    document.getElementById('displayText').textContent = s.text;
-    applyFontSize();
-    calcHeight();
-    applyScrollPos();
-    if (s.text) document.getElementById('displayWaiting').style.display = 'none';
-  }
+  setText(s.text);
+  applyFontSize();
+  setTimeout(() => { calcHeight(); applyScrollPos(); updateProgress(); }, 80);
   if (role === 'controller') {
-    document.getElementById('scriptInput').value = s.text;
     document.getElementById('speedSlider').value = s.speed;
     document.getElementById('speedVal').textContent = s.speed;
     document.getElementById('fontSlider').value = s.fontSize;
     document.getElementById('fontVal').textContent = s.fontSize;
-    updatePlayBtn();
-    updateSeek();
   }
-  if (s.playing) {
-    lastTimestamp = performance.now();
-    startScroll();
-  }
+  updatePlayBtn(); updateDim();
+  if (s.playing) { lastTimestamp = performance.now(); startScroll(); }
 }
 
-// ── SCROLL ENGINE ──
+function setText(text) {
+  const ctrlEl = document.getElementById('ctrlText');
+  const dispEl = document.getElementById('dispText');
+  if (ctrlEl) ctrlEl.textContent = text;
+  if (dispEl) dispEl.textContent = text;
+  const empty = document.getElementById('ctrlEmpty');
+  if (empty) empty.style.display = text ? 'none' : '';
+  const dw = document.getElementById('dispWaiting');
+  if (dw) dw.style.display = text ? 'none' : '';
+  state.text = text;
+}
+
+// ── SCROLL ──
 function startScroll() {
   if (animFrame) cancelAnimationFrame(animFrame);
   lastTimestamp = lastTimestamp ?? performance.now();
   animFrame = requestAnimationFrame(scrollStep);
 }
-
 function stopScroll() {
   if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
   lastTimestamp = null;
 }
-
 function scrollStep(ts) {
   if (!state.playing) { stopScroll(); return; }
   const dt = (ts - (lastTimestamp ?? ts)) / 1000;
   lastTimestamp = ts;
   currentPos += state.speed * dt;
   if (currentPos >= totalHeight) {
-    currentPos = totalHeight;
-    state.playing = false;
-    stopScroll();
-    updatePlayBtn();
+    currentPos = totalHeight; state.playing = false;
+    stopScroll(); updatePlayBtn(); updateDim();
     if (role === 'controller') ws?.send(JSON.stringify({ type: 'pause', position: currentPos }));
   }
-  applyScrollPos();
-  if (role === 'controller') updateSeek();
+  applyScrollPos(); updateProgress();
   animFrame = requestAnimationFrame(scrollStep);
 }
 
 function applyScrollPos() {
-  if (role === 'display') {
-    document.getElementById('textWrap').style.transform = `translateY(${-currentPos}px)`;
+  // Display: normal translateY
+  const dispWrap = document.getElementById('dispWrap');
+  if (dispWrap) dispWrap.style.transform = `translateY(${-currentPos}px)`;
+
+  // Mirror: scale + translate
+  // The mirror is scaled by MIRROR_SCALE, so we need to apply the same
+  // logical scroll but adjusted for scale
+  const ctrlWrap = document.getElementById('ctrlTextWrap');
+  if (ctrlWrap) {
+    const mirrorH = document.querySelector('.ctrl-mirror')?.offsetHeight || 0;
+    const scaledPos = currentPos * MIRROR_SCALE;
+    ctrlWrap.style.transform = `scale(${MIRROR_SCALE}) translateY(${-currentPos}px)`;
   }
 }
 
 function applyFontSize() {
-  if (role === 'display') {
-    document.getElementById('displayText').style.fontSize = state.fontSize + 'px';
-    setTimeout(calcHeight, 50);
-  }
+  const fs = state.fontSize + 'px';
+  const ctrlEl = document.getElementById('ctrlText');
+  const dispEl = document.getElementById('dispText');
+  if (ctrlEl) ctrlEl.style.fontSize = fs;
+  if (dispEl) dispEl.style.fontSize = fs;
+  setTimeout(calcHeight, 80);
 }
 
 function calcHeight() {
-  const wrap = document.getElementById('textWrap');
-  if (wrap) totalHeight = Math.max(0, wrap.scrollHeight - window.innerHeight);
-}
-
-function updatePlayBtn() {
-  if (role !== 'controller') return;
-  const btn = document.getElementById('btnPlay');
-  btn.textContent = state.playing ? '⏸' : '▶';
-  btn.classList.toggle('playing', state.playing);
-}
-
-function updateSeek() {
-  if (role !== 'controller') return;
-  const pct = totalHeight > 0 ? (currentPos / totalHeight) * 100 : 0;
-  document.getElementById('seekFill').style.width = pct + '%';
-  document.getElementById('statusBar').style.width = pct + '%';
-}
-
-// ── CONTROLLER ACTIONS ──
-function joinAs(r) {
-  role = r;
-  showScreen(r === 'controller' ? 'screen-controller' : 'screen-display');
-  connect();
-  if (r === 'display') {
-    // Keep screen on
-    if ('wakeLock' in navigator) {
-      navigator.wakeLock.request('screen').catch(() => {});
+  if (role === 'display') {
+    const w = document.getElementById('dispWrap');
+    if (w) totalHeight = Math.max(0, w.scrollHeight - window.innerHeight);
+  } else {
+    // Estimate from ctrl mirror (scale-adjusted)
+    const w = document.getElementById('ctrlTextWrap');
+    if (w) {
+      // scrollHeight is in unscaled space, which is what we want
+      const mirrorEl = document.querySelector('.ctrl-mirror');
+      const mirrorH = mirrorEl ? mirrorEl.offsetHeight / MIRROR_SCALE : window.innerHeight;
+      totalHeight = Math.max(0, w.scrollHeight - mirrorH);
     }
   }
 }
 
-function showScreen(id) {
+function updateProgress() {
+  const fill = document.getElementById('ctrlProgress');
+  if (!fill) return;
+  fill.style.width = (totalHeight > 0 ? (currentPos / totalHeight) * 100 : 0) + '%';
+}
+
+function updatePlayBtn() {
+  if (role !== 'controller') return;
+  const playing = state.playing;
+  document.getElementById('playIcon').textContent = playing ? '⏸' : '▶';
+  document.getElementById('playLabel').textContent = playing ? 'ПАУЗА' : 'СТАРТ';
+  document.getElementById('playBtn').classList.toggle('playing', playing);
+}
+
+function updateDim() {
+  if (role !== 'controller') return;
+  const dim = document.getElementById('ctrlDim');
+  const lbl = document.getElementById('ctrlDimLabel');
+  if (!state.text) {
+    dim.classList.add('paused');
+    if (lbl) lbl.textContent = 'НЕТ ТЕКСТА';
+  } else if (!state.playing) {
+    dim.classList.add('paused');
+    if (lbl) lbl.textContent = 'ПАУЗА';
+  } else {
+    dim.classList.remove('paused');
+  }
+}
+
+// ── JOIN ──
+function joinAs(r) {
+  role = r;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  document.getElementById(r === 'controller' ? 'screen-controller' : 'screen-display').classList.add('active');
+  if (r === 'controller') {
+    // Set CSS variable for mirror scale
+    document.getElementById('ctrlTextWrap').style.width = (100 / MIRROR_SCALE) + '%';
+  }
+  if (r === 'display') {
+    if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(() => {});
+  }
+  connect();
 }
 
-function sendText() {
-  const text = document.getElementById('scriptInput').value.trim();
-  if (!text) return;
-  ws?.send(JSON.stringify({ type: 'setText', text }));
-  // calc height on controller side too
-  totalHeight = estimateHeight(text, state.fontSize);
-  updateSeek();
-}
-
-function estimateHeight(text, fs) {
-  // rough estimate: chars per line based on screen width
-  const charsPerLine = Math.floor(window.innerWidth / (fs * 0.55));
-  const lines = text.split('\n').reduce((acc, line) => {
-    return acc + Math.max(1, Math.ceil(line.length / charsPerLine));
-  }, 0);
-  return Math.max(0, lines * fs * 1.35);
-}
-
+// ── CONTROLS ──
 function togglePlay() {
-  if (!state.text && !document.getElementById('scriptInput').value) return;
-  if (!state.text) sendText();
+  if (!state.text) { openEdit(); return; }
   state.playing = !state.playing;
   if (state.playing) {
     ws?.send(JSON.stringify({ type: 'play' }));
     startScroll();
   } else {
     ws?.send(JSON.stringify({ type: 'pause', position: currentPos }));
-    stopScroll();
+    stopScroll(); applyScrollPos();
   }
-  updatePlayBtn();
-}
-
-function rewind() {
-  currentPos = Math.max(0, currentPos - window.innerHeight * 0.8);
-  ws?.send(JSON.stringify({ type: 'seek', position: currentPos }));
-  applyScrollPos();
-  updateSeek();
-}
-
-function forward() {
-  currentPos = Math.min(totalHeight, currentPos + window.innerHeight * 0.8);
-  ws?.send(JSON.stringify({ type: 'seek', position: currentPos }));
-  applyScrollPos();
-  updateSeek();
+  updatePlayBtn(); updateDim();
 }
 
 function onSpeed(val) {
@@ -737,48 +609,50 @@ function onFontSize(val) {
   state.fontSize = +val;
   document.getElementById('fontVal').textContent = val;
   ws?.send(JSON.stringify({ type: 'fontSize', fontSize: +val }));
-  totalHeight = estimateHeight(document.getElementById('scriptInput').value, +val);
-  updateSeek();
+  setTimeout(calcHeight, 80);
 }
 
-function onSeekClick(e) {
-  const strip = document.getElementById('seekStrip');
-  const pct = e.offsetX / strip.offsetWidth;
-  currentPos = pct * totalHeight;
+function seekBack() {
+  currentPos = Math.max(0, currentPos - window.innerHeight * 0.8);
   ws?.send(JSON.stringify({ type: 'seek', position: currentPos }));
-  updateSeek();
+  applyScrollPos(); updateProgress();
 }
 
-function onSeekTouch(e) {
-  e.preventDefault();
-  const strip = document.getElementById('seekStrip');
-  const rect = strip.getBoundingClientRect();
-  const touch = e.touches[0];
-  const pct = Math.min(1, Math.max(0, (touch.clientX - rect.left) / rect.width));
-  currentPos = pct * totalHeight;
+function seekFwd() {
+  currentPos = Math.min(totalHeight, currentPos + window.innerHeight * 0.8);
   ws?.send(JSON.stringify({ type: 'seek', position: currentPos }));
-  updateSeek();
+  applyScrollPos(); updateProgress();
+}
+
+function openEdit() {
+  document.getElementById('scriptInput').value = state.text || '';
+  document.getElementById('editModal').classList.add('active');
+  setTimeout(() => document.getElementById('scriptInput').focus(), 100);
+}
+
+function closeEdit() {
+  document.getElementById('editModal').classList.remove('active');
+}
+
+function sendText() {
+  const text = document.getElementById('scriptInput').value.trim();
+  if (!text) return;
+  ws?.send(JSON.stringify({ type: 'setText', text }));
+  closeEdit();
 }
 
 function loadFile(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+  const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
-  reader.onload = (ev) => {
+  reader.onload = ev => {
     document.getElementById('scriptInput').value = ev.target.result;
+    document.getElementById('editModal').classList.add('active');
   };
   reader.readAsText(file, 'UTF-8');
+  e.target.value = '';
 }
 
-// ── DISPLAY: handle resize ──
-window.addEventListener('resize', () => {
-  if (role === 'display') calcHeight();
-});
-
-// ── Auto-send text on input blur (convenience) ──
-document.getElementById('scriptInput').addEventListener('blur', () => {
-  // don't auto-send, let user press button
-});
+window.addEventListener('resize', calcHeight);
 </script>
 </body>
 </html>
