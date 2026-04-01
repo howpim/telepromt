@@ -538,14 +538,17 @@ function handleMessage(msg) {
     case 'play':
       state.playing = true;
       state.speed = msg.speed;
-      currentPos = msg.position;
-      lastTimestamp = performance.now() - (Date.now() - msg.lastUpdate);
+      // Display uses its own currentPos to avoid jump on resume
+      if (role === 'controller') currentPos = msg.position;
+      lastTimestamp = performance.now();
       startScroll();
       updatePlayBtn();
       break;
     case 'pause':
       state.playing = false;
-      currentPos = msg.position;
+      // Display keeps its own currentPos to avoid jump
+      // Controller takes server position for seek bar accuracy
+      if (role === 'controller') currentPos = msg.position;
       stopScroll();
       applyScrollPos();
       updatePlayBtn();
