@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Prompter">
@@ -395,14 +395,47 @@ let state = { text: '', playing: false, speed: 50, position: 0, fontSize: 52, te
 let displayW = 0, displayH = 0;
 let animFrame = null, lastTimestamp = null;
 let currentPos = 0, totalHeight = 0;
-let isSeeking = false; // true while finger is on mirror
+let isSeeking = false;
 
-// ── MIRROR SCALE ──
-// The mirror shows the text at a reduced scale so it fits the top half
-// We compute scale so that the full display width maps to the mirror width
 const MIRROR_SCALE = 0.32;
 
-// ── CONNECT ──
+// ── WebRTC config ──
+const RTC_CONFIG = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ]
+};
+
+// Controller: map of displayId -> { pc, dc, ready }
+const peers = new Map();
+// Display: single peer connection from controller
+let displayPC = null;
+let displayDC = null;
+let rtcReady = false; // true when at least one DataChannel is open
+
+// ── SEND COMMAND (WebRTC if available, WS fallback) ──
+function sendCommand(msg) {
+  const data = JSON.stringify(msg);
+
+  if (role === 'controller') {
+    // Send via DataChannel to all connected displays
+    let sentViaRTC = false;
+    peers.forEach(peer => {
+      if (peer.dc && peer.dc.readyState === 'open') {
+        peer.dc.send(data);
+        sentViaRTC = true;
+      }
+    });
+    // Always send via WS too (for server state sync + fallback)
+    ws?.send(data);
+  } else {
+    // Display shouldn't normally send commands, but just in case
+    ws?.send(data);
+  }
+}
+
+// ── CONNECT (WebSocket for signaling + fallback) ──
 function connect() {
   ws = new WebSocket(WS_URL);
   ws.onopen = () => {
@@ -414,17 +447,195 @@ function connect() {
     }
     ws.send(JSON.stringify(msg));
   };
-  ws.onclose = () => { setConnected(false); setTimeout(connect, 2000); };
-  ws.onmessage = e => handleMessage(JSON.parse(e.data));
+  ws.onclose = () => {
+    setConnected(false);
+    rtcReady = false;
+    setTimeout(connect, 2000);
+  };
+  ws.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    // Handle signaling messages
+    if (msg.type.startsWith('rtc-') || msg.type === 'display-joined' || msg.type === 'display-left') {
+      handleSignaling(msg);
+      return;
+    }
+    // On display with active RTC: only accept 'state' via WS (initial sync), skip command duplicates
+    if (role === 'display' && rtcReady) {
+      if (msg.type === 'state' || msg.type === 'displayDimensions') {
+        handleMessage(msg);
+      }
+      // else: skip — we'll get it via DataChannel
+      return;
+    }
+    handleMessage(msg);
+  };
+}
+
+// ── WebRTC SIGNALING ──
+function handleSignaling(msg) {
+  switch (msg.type) {
+    case 'display-joined':
+      if (role === 'controller') createPeerConnection(msg.displayId);
+      break;
+    case 'display-left':
+      if (role === 'controller') {
+        const peer = peers.get(msg.displayId);
+        if (peer?.pc) peer.pc.close();
+        peers.delete(msg.displayId);
+        updateRTCStatus();
+      }
+      break;
+    case 'rtc-offer':
+      if (role === 'display') handleOffer(msg);
+      break;
+    case 'rtc-answer':
+      if (role === 'controller') handleAnswer(msg);
+      break;
+    case 'rtc-ice':
+      handleICE(msg);
+      break;
+  }
+}
+
+// Controller: create peer connection to a display
+async function createPeerConnection(displayId) {
+  const pc = new RTCPeerConnection(RTC_CONFIG);
+  const dc = pc.createDataChannel('commands', { ordered: true });
+  const peer = { pc, dc, ready: false };
+  peers.set(displayId, peer);
+
+  dc.onopen = () => {
+    peer.ready = true;
+    updateRTCStatus();
+    console.log(`[RTC] DataChannel open to display ${displayId}`);
+  };
+  dc.onclose = () => {
+    peer.ready = false;
+    updateRTCStatus();
+  };
+
+  pc.onicecandidate = e => {
+    if (e.candidate) {
+      ws?.send(JSON.stringify({ type: 'rtc-ice', candidate: e.candidate, targetId: displayId }));
+    }
+  };
+
+  pc.onconnectionstatechange = () => {
+    if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+      console.log(`[RTC] Connection ${pc.connectionState} to display ${displayId}, will retry`);
+      peer.ready = false;
+      updateRTCStatus();
+      // Retry after a short delay
+      setTimeout(() => {
+        if (peers.has(displayId)) {
+          pc.close();
+          peers.delete(displayId);
+          createPeerConnection(displayId);
+        }
+      }, 2000);
+    }
+  };
+
+  try {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    ws?.send(JSON.stringify({ type: 'rtc-offer', offer, targetId: displayId }));
+  } catch (err) {
+    console.warn('[RTC] Failed to create offer:', err);
+  }
+}
+
+// Display: handle incoming offer from controller
+async function handleOffer(msg) {
+  if (displayPC) displayPC.close();
+
+  const pc = new RTCPeerConnection(RTC_CONFIG);
+  displayPC = pc;
+
+  pc.ondatachannel = e => {
+    displayDC = e.channel;
+    displayDC.onmessage = ev => {
+      const cmd = JSON.parse(ev.data);
+      handleMessage(cmd);
+    };
+    displayDC.onopen = () => {
+      rtcReady = true;
+      console.log('[RTC] DataChannel open from controller');
+    };
+    displayDC.onclose = () => { rtcReady = false; };
+  };
+
+  pc.onicecandidate = e => {
+    if (e.candidate) {
+      ws?.send(JSON.stringify({ type: 'rtc-ice', candidate: e.candidate }));
+    }
+  };
+
+  try {
+    await pc.setRemoteDescription(msg.offer);
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    ws?.send(JSON.stringify({ type: 'rtc-answer', answer, fromId: msg.fromId }));
+  } catch (err) {
+    console.warn('[RTC] Failed to handle offer:', err);
+  }
+}
+
+// Controller: handle answer from display
+async function handleAnswer(msg) {
+  const peer = peers.get(msg.fromId);
+  if (!peer) return;
+  try {
+    await peer.pc.setRemoteDescription(msg.answer);
+  } catch (err) {
+    console.warn('[RTC] Failed to set answer:', err);
+  }
+}
+
+// Both: handle ICE candidate
+async function handleICE(msg) {
+  try {
+    if (role === 'controller') {
+      const peer = peers.get(msg.fromId);
+      if (peer) await peer.pc.addIceCandidate(msg.candidate);
+    } else {
+      if (displayPC) await displayPC.addIceCandidate(msg.candidate);
+    }
+  } catch (err) {
+    // ICE candidates can arrive before remote description is set, safe to ignore
+  }
+}
+
+function updateRTCStatus() {
+  if (role !== 'controller') return;
+  const anyReady = [...peers.values()].some(p => p.ready);
+  rtcReady = anyReady;
+  // Update connection label to show P2P status
+  const label = document.getElementById('connLabel');
+  if (label) {
+    if (rtcReady) {
+      label.textContent = 'P2P';
+      label.style.color = 'var(--green)';
+    } else {
+      label.textContent = 'ОНЛАЙН';
+      label.style.color = '';
+    }
+  }
 }
 
 function setConnected(v) {
   if (role !== 'controller') return;
   document.getElementById('connDot').classList.toggle('online', v);
-  document.getElementById('connLabel').textContent = v ? 'ОНЛАЙН' : 'ОФЛАЙН';
+  if (!v) {
+    document.getElementById('connLabel').textContent = 'ОФЛАЙН';
+    document.getElementById('connLabel').style.color = '';
+  } else if (!rtcReady) {
+    document.getElementById('connLabel').textContent = 'ОНЛАЙН';
+    document.getElementById('connLabel').style.color = '';
+  }
 }
 
-// ── MESSAGES ──
+// ── MESSAGES (from WS or DataChannel) ──
 function handleMessage(msg) {
   switch (msg.type) {
     case 'state': applyState(msg); break;
@@ -448,16 +659,16 @@ function handleMessage(msg) {
       break;
 
     case 'seek':
-      if (role === 'controller' && isSeeking) break; // ignore echo while dragging
+      if (role === 'controller' && isSeeking) break;
       currentPos = msg.position;
-      lastTimestamp = performance.now() - (Date.now() - msg.lastUpdate);
+      lastTimestamp = performance.now() - (Date.now() - (msg.lastUpdate || Date.now()));
       if (msg.playing) startScroll(); else applyScrollPos();
       updateProgress();
       break;
 
     case 'speed':
       state.speed = msg.speed; currentPos = msg.position;
-      lastTimestamp = performance.now() - (Date.now() - msg.lastUpdate);
+      lastTimestamp = performance.now() - (Date.now() - (msg.lastUpdate || Date.now()));
       if (role === 'controller') {
         document.getElementById('speedSlider').value = msg.speed;
         document.getElementById('speedVal').textContent = msg.speed;
@@ -523,7 +734,7 @@ function scrollStep(ts) {
   if (currentPos >= totalHeight) {
     currentPos = totalHeight; state.playing = false;
     stopScroll(); updatePlayBtn(); updateDim();
-    if (role === 'controller') ws?.send(JSON.stringify({ type: 'pause', position: currentPos }));
+    if (role === 'controller') sendCommand({ type: 'pause', position: currentPos });
   }
   applyScrollPos(); updateProgress();
   animFrame = requestAnimationFrame(scrollStep);
@@ -628,7 +839,7 @@ function setupMirrorGestures() {
       applyScrollPos();
       updateProgress();
       // broadcast live so displays follow in real time
-      ws?.send(JSON.stringify({ type: 'seek', position: currentPos }));
+      sendCommand({ type: 'seek', position: currentPos });
     }
   }, { passive: true });
 
@@ -645,10 +856,10 @@ function togglePlay() {
   if (!state.text) { openEdit(); return; }
   state.playing = !state.playing;
   if (state.playing) {
-    ws?.send(JSON.stringify({ type: 'play' }));
+    sendCommand({ type: 'play' });
     startScroll();
   } else {
-    ws?.send(JSON.stringify({ type: 'pause', position: currentPos }));
+    sendCommand({ type: 'pause', position: currentPos });
     stopScroll(); applyScrollPos();
   }
   updatePlayBtn(); updateDim();
@@ -657,13 +868,13 @@ function togglePlay() {
 function onSpeed(val) {
   state.speed = +val;
   document.getElementById('speedVal').textContent = val;
-  ws?.send(JSON.stringify({ type: 'speed', speed: +val, position: currentPos }));
+  sendCommand({ type: 'speed', speed: +val, position: currentPos });
 }
 
 function onFontSize(val) {
   state.fontSize = +val;
   document.getElementById('fontVal').textContent = val;
-  ws?.send(JSON.stringify({ type: 'fontSize', fontSize: +val }));
+  sendCommand({ type: 'fontSize', fontSize: +val });
   setTimeout(calcHeight, 80);
 }
 
@@ -671,7 +882,7 @@ function onTextPadding(val) {
   state.textPadding = +val;
   document.getElementById('paddingVal').textContent = val + '%';
   applyTextPadding();
-  ws?.send(JSON.stringify({ type: 'textPadding', textPadding: +val }));
+  sendCommand({ type: 'textPadding', textPadding: +val });
   setTimeout(calcHeight, 80);
 }
 
@@ -692,13 +903,13 @@ function applyTextPadding() {
 
 function seekBack() {
   currentPos = Math.max(0, currentPos - window.innerHeight * 0.8);
-  ws?.send(JSON.stringify({ type: 'seek', position: currentPos }));
+  sendCommand({ type: 'seek', position: currentPos });
   applyScrollPos(); updateProgress();
 }
 
 function seekFwd() {
   currentPos = Math.min(totalHeight, currentPos + window.innerHeight * 0.8);
-  ws?.send(JSON.stringify({ type: 'seek', position: currentPos }));
+  sendCommand({ type: 'seek', position: currentPos });
   applyScrollPos(); updateProgress();
 }
 
@@ -715,7 +926,7 @@ function closeEdit() {
 function sendText() {
   const text = document.getElementById('scriptInput').value.trim();
   if (!text) return;
-  ws?.send(JSON.stringify({ type: 'setText', text }));
+  sendCommand({ type: 'setText', text });
   closeEdit();
 }
 
