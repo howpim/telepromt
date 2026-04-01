@@ -1,6 +1,5 @@
 [deploy]
 startCommand = "npm start"
-healthcheckPath = "/"
+healthcheckPath = "/health"
 
-[variables]
-PORT = "8080"
+
