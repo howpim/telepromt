@@ -359,7 +359,7 @@
   .display-text-wrap {
     position: absolute;
     width: 100%;
-    padding: 60px 32px 80vh 32px;
+    padding: 0px 32px 100vh 32px;
     will-change: transform;
   }
   #displayText {
@@ -370,22 +370,6 @@
     color: #ffffff;
     white-space: pre-wrap;
     word-break: break-word;
-  }
-  .display-gradient-top {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: 120px;
-    background: linear-gradient(to bottom, #000 30%, transparent);
-    pointer-events: none;
-    z-index: 10;
-  }
-  .display-gradient-bottom {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    height: 120px;
-    background: linear-gradient(to top, #000 30%, transparent);
-    pointer-events: none;
-    z-index: 10;
   }
   .display-cue {
     position: fixed;
@@ -495,12 +479,10 @@
 
 <!-- DISPLAY -->
 <div id="screen-display" class="screen">
-  <div class="display-gradient-top"></div>
   <div class="display-cue"></div>
   <div class="display-text-wrap" id="textWrap">
     <div id="displayText"></div>
   </div>
-  <div class="display-gradient-bottom"></div>
   <div class="display-waiting" id="displayWaiting">ОЖИДАНИЕ СИГНАЛА...</div>
 </div>
 
