@@ -355,8 +355,7 @@
     <!-- Action buttons -->
     <div class="ctrl-actions">
       <button class="ctrl-action-btn" onclick="openEdit()">✏️ Текст</button>
-      <button class="ctrl-action-btn" onclick="seekBack()">⏮ Назад</button>
-      <button class="ctrl-action-btn" onclick="seekFwd()">Вперёд ⏭</button>
+      <button class="ctrl-action-btn" onclick="replayFromStart()">🔄</button>
       <button class="ctrl-action-btn" onclick="document.getElementById('fileInput').click()">📁 Файл</button>
     </div>
 
@@ -856,20 +855,20 @@ function joinAs(r) {
   connect();
 }
 
-// ── MIRROR GESTURES (tap = pause, swipe = seek) ──
+// ── MIRROR GESTURES (tap = pause/play, swipe = seek with auto-pause) ──
 function setupMirrorGestures() {
-  const mirror = document.getElementById('ctrlView') || document.querySelector('.ctrl-mirror');
-  // Use the mirror div for gestures
   const el = document.getElementById('ctrlMirror');
   if (!el) return;
 
   let startY = 0, startTime = 0, moved = false;
+  let wasPlaying = false; // track if we need to resume after scroll
 
   el.addEventListener('touchstart', e => {
     startY = e.touches[0].clientY;
     startTime = Date.now();
     moved = false;
     isSeeking = false;
+    wasPlaying = state.playing;
   }, { passive: true });
 
   el.addEventListener('touchmove', e => {
@@ -877,12 +876,18 @@ function setupMirrorGestures() {
     if (Math.abs(dy) > 8) {
       moved = true;
       isSeeking = true;
+      // Auto-pause on first move
+      if (state.playing) {
+        state.playing = false;
+        stopScroll();
+        updatePlayBtn(); updateDim();
+        sendCommand({ type: 'pause', position: currentPos });
+      }
       const delta = -dy * (1 / (window._mirrorScale || MIRROR_SCALE)) * 0.5;
       currentPos = Math.max(0, Math.min(totalHeight, currentPos + delta));
       startY = e.touches[0].clientY;
       applyScrollPos();
       updateProgress();
-      // broadcast live so displays follow in real time
       sendCommand({ type: 'seek', position: currentPos });
     }
   }, { passive: true });
@@ -891,7 +896,14 @@ function setupMirrorGestures() {
     isSeeking = false;
     if (!moved && Date.now() - startTime < 300) {
       togglePlay();
+    } else if (moved && wasPlaying) {
+      // Resume playback after scroll
+      state.playing = true;
+      sendCommand({ type: 'play' });
+      startScroll();
+      updatePlayBtn(); updateDim();
     }
+    wasPlaying = false;
   }, { passive: true });
 }
 
@@ -964,16 +976,15 @@ function applyLineHeight() {
   });
 }
 
-function seekBack() {
-  currentPos = Math.max(0, currentPos - window.innerHeight * 0.8);
-  sendCommand({ type: 'seek', position: currentPos });
-  applyScrollPos(); updateProgress();
-}
-
-function seekFwd() {
-  currentPos = Math.min(totalHeight, currentPos + window.innerHeight * 0.8);
-  sendCommand({ type: 'seek', position: currentPos });
-  applyScrollPos(); updateProgress();
+function replayFromStart() {
+  state.playing = false;
+  currentPos = 0;
+  stopScroll();
+  applyScrollPos();
+  updateProgress();
+  updatePlayBtn();
+  updateDim();
+  sendCommand({ type: 'seek', position: 0 });
 }
 
 function openEdit() {
