@@ -75,9 +75,7 @@
   }
   .ctrl-mirror-text-wrap {
     position: absolute;
-    width: calc(100% / var(--mirror-scale, 0.35));
     transform-origin: top left;
-    transform: scale(var(--mirror-scale, 0.35));
     padding: 0 32px 200px 32px;
     will-change: transform;
   }
@@ -505,13 +503,10 @@ function applyScrollPos() {
   const dispWrap = document.getElementById('dispWrap');
   if (dispWrap) dispWrap.style.transform = `translateY(${-currentPos}px)`;
 
-  // Mirror: scale + translate
-  // The mirror is scaled by MIRROR_SCALE, so we need to apply the same
-  // logical scroll but adjusted for scale
+  // Mirror: translate first (in unscaled coords), then scale from top-left
+  // translateY(-pos) then scale(S) = the same visible slice as the display
   const ctrlWrap = document.getElementById('ctrlTextWrap');
   if (ctrlWrap) {
-    const mirrorH = document.querySelector('.ctrl-mirror')?.offsetHeight || 0;
-    const scaledPos = currentPos * MIRROR_SCALE;
     ctrlWrap.style.transform = `scale(${MIRROR_SCALE}) translateY(${-currentPos}px)`;
   }
 }
@@ -526,19 +521,13 @@ function applyFontSize() {
 }
 
 function calcHeight() {
-  if (role === 'display') {
-    const w = document.getElementById('dispWrap');
-    if (w) totalHeight = Math.max(0, w.scrollHeight - window.innerHeight);
-  } else {
-    // Estimate from ctrl mirror (scale-adjusted)
-    const w = document.getElementById('ctrlTextWrap');
-    if (w) {
-      // scrollHeight is in unscaled space, which is what we want
-      const mirrorEl = document.querySelector('.ctrl-mirror');
-      const mirrorH = mirrorEl ? mirrorEl.offsetHeight / MIRROR_SCALE : window.innerHeight;
-      totalHeight = Math.max(0, w.scrollHeight - mirrorH);
-    }
-  }
+  // Always use ctrlTextWrap (unscaled) minus full screen height
+  // This makes totalHeight identical on controller and display
+  const w = document.getElementById('ctrlTextWrap');
+  if (w) totalHeight = Math.max(0, w.scrollHeight - window.innerHeight);
+  // Also sync from display wrap if available
+  const wd = document.getElementById('dispWrap');
+  if (wd && wd.scrollHeight > 0) totalHeight = Math.max(0, wd.scrollHeight - window.innerHeight);
 }
 
 function updateProgress() {
@@ -567,7 +556,9 @@ function joinAs(r) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(r === 'controller' ? 'screen-controller' : 'screen-display').classList.add('active');
   if (r === 'controller') {
-    document.getElementById('ctrlTextWrap').style.width = (100 / MIRROR_SCALE) + '%';
+    // Width = full display width in unscaled space so layout matches display exactly
+    const wrap = document.getElementById('ctrlTextWrap');
+    wrap.style.width = window.innerWidth + 'px';
     setupMirrorGestures();
   }
   if (r === 'display') {
