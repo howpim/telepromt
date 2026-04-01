@@ -88,7 +88,7 @@
     white-space: pre-wrap;
     word-break: break-word;
     width: 600px; margin: 0 auto;
-    /* Must match .disp-text width exactly */
+    text-align: center;
   }
   /* Cue line in mirror */
   .ctrl-mirror-cue {
@@ -227,6 +227,7 @@
     font-size: 52px; line-height: 1.35; color: #fff;
     white-space: pre-wrap; word-break: break-word;
     width: 600px; margin: 0 auto;
+    text-align: center;
   }
   .disp-cue {
     position: absolute; top: 38%; left: 0; right: 0;
@@ -344,6 +345,11 @@
         <input type="range" id="paddingSlider" min="5" max="35" value="10" oninput="onTextPadding(this.value)">
         <span class="ctrl-slider-val white" id="paddingVal">10%</span>
       </div>
+      <div class="ctrl-slider-row">
+        <span class="ctrl-slider-label">Интерв</span>
+        <input type="range" id="lineHeightSlider" min="100" max="250" value="135" oninput="onLineHeight(this.value)">
+        <span class="ctrl-slider-val white" id="lineHeightVal">1.35</span>
+      </div>
     </div>
 
     <!-- Action buttons -->
@@ -391,7 +397,7 @@ const WS_URL = location.protocol === 'https:'
   ? `wss://${location.host}` : `ws://${location.host}`;
 
 let ws = null, role = null;
-let state = { text: '', playing: false, speed: 50, position: 0, fontSize: 52, textWidth: 600 };
+let state = { text: '', playing: false, speed: 50, position: 0, fontSize: 52, textWidth: 600, lineHeight: 1.35 };
 let displayW = 0, displayH = 0;
 let animFrame = null, lastTimestamp = null;
 let currentPos = 0, totalHeight = 0;
@@ -708,6 +714,11 @@ function handleMessage(msg) {
 
     case 'textPadding':
       state.textPadding = msg.textPadding; applyTextPadding(); break;
+
+    case 'lineHeight':
+      state.lineHeight = msg.lineHeight; applyLineHeight();
+      setTimeout(calcHeight, 80);
+      break;
   }
 }
 
@@ -726,8 +737,13 @@ function applyState(s) {
       document.getElementById('paddingSlider').value = s.textPadding;
       document.getElementById('paddingVal').textContent = s.textPadding + '%';
     }
+    if (s.lineHeight != null) {
+      document.getElementById('lineHeightSlider').value = Math.round(s.lineHeight * 100);
+      document.getElementById('lineHeightVal').textContent = s.lineHeight.toFixed(2);
+    }
   }
   applyTextPadding();
+  applyLineHeight();
   updatePlayBtn(); updateDim();
   if (s.playing) { lastTimestamp = performance.now(); startScroll(); }
 }
@@ -926,6 +942,25 @@ function applyTextPadding() {
       w.style.paddingLeft = p;
       w.style.paddingRight = p;
     }
+  });
+}
+
+function onLineHeight(val) {
+  state.lineHeight = +val / 100;
+  document.getElementById('lineHeightVal').textContent = state.lineHeight.toFixed(2);
+  applyLineHeight();
+  sendCommand({ type: 'lineHeight', lineHeight: +val / 100 });
+  setTimeout(calcHeight, 80);
+}
+
+function applyLineHeight() {
+  const lh = (state.lineHeight || 1.35) + '';
+  const els = [
+    document.getElementById('ctrlText'),
+    document.getElementById('dispText')
+  ];
+  els.forEach(el => {
+    if (el) el.style.lineHeight = lh;
   });
 }
 
