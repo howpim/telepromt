@@ -670,32 +670,37 @@ function handleMessage(msg) {
 
     case 'play':
       state.playing = true; state.speed = msg.speed;
-      if (role === 'controller') currentPos = msg.position;
+      currentPos = msg.position != null ? msg.position : currentPos;
       lastTimestamp = performance.now();
+      applyScrollPos();
       startScroll(); updatePlayBtn(); updateDim();
       break;
 
     case 'pause':
       state.playing = false;
-      if (role === 'controller') currentPos = msg.position;
+      currentPos = msg.position != null ? msg.position : currentPos;
       stopScroll(); applyScrollPos(); updatePlayBtn(); updateDim(); updateProgress();
       break;
 
     case 'seek':
       if (role === 'controller' && isSeeking) break;
       currentPos = msg.position;
-      lastTimestamp = performance.now() - (Date.now() - (msg.lastUpdate || Date.now()));
-      if (msg.playing) startScroll(); else applyScrollPos();
+      lastTimestamp = performance.now();
+      applyScrollPos();
+      if (msg.playing) startScroll();
       updateProgress();
       break;
 
     case 'speed':
-      state.speed = msg.speed; currentPos = msg.position;
-      lastTimestamp = performance.now() - (Date.now() - (msg.lastUpdate || Date.now()));
+      state.speed = msg.speed;
+      currentPos = msg.position;
+      lastTimestamp = performance.now();
+      applyScrollPos();
       if (role === 'controller') {
         document.getElementById('speedSlider').value = msg.speed;
         document.getElementById('speedVal').textContent = msg.speed;
       }
+      if (state.playing) startScroll();
       break;
 
     case 'fontSize':
