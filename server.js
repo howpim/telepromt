@@ -41,7 +41,9 @@ let state = {
   speed: 50,
   position: 0,
   fontSize: 52,
-  lastUpdate: Date.now()
+  lastUpdate: Date.now(),
+  displayW: 0,
+  displayH: 0
 };
 
 let controller = null;
@@ -65,8 +67,17 @@ wss.on('connection', (ws) => {
 
     switch (msg.type) {
       case 'join':
-        if (msg.role === 'controller') { controller = ws; }
-        else { displays.add(ws); }
+        if (msg.role === 'controller') {
+          controller = ws;
+        } else {
+          displays.add(ws);
+          // Store display dimensions and broadcast to controller
+          if (msg.displayW && msg.displayH) {
+            state.displayW = msg.displayW;
+            state.displayH = msg.displayH;
+            broadcast({ type: 'displayDimensions', displayW: msg.displayW, displayH: msg.displayH });
+          }
+        }
         ws.send(JSON.stringify({ type: 'state', ...state }));
         break;
       case 'setText':
