@@ -61,7 +61,7 @@
 
   /* Mirror — top portion */
   .ctrl-mirror {
-    flex: 0 0 36%;
+    flex: 0 0 42%;
     position: relative;
     background: #000;
     overflow: hidden;
@@ -76,7 +76,8 @@
   .ctrl-mirror-text-wrap {
     position: absolute;
     transform-origin: top left;
-    padding: 0 32px 200px 32px;
+    padding: 0 32px;
+    padding-bottom: 844px; /* will be updated by JS to match display height */
     will-change: transform;
   }
   .ctrl-mirror-text {
@@ -86,7 +87,8 @@
     color: #fff;
     white-space: pre-wrap;
     word-break: break-word;
-    width: 500px; margin: 0 auto;
+    width: 600px; margin: 0 auto;
+    /* Must match .disp-text width exactly */
   }
   /* Cue line in mirror */
   .ctrl-mirror-cue {
@@ -136,7 +138,7 @@
 
   /* Play button — big, full width */
   .ctrl-play-btn {
-    width: 100%; flex: 0 0 58px;
+    width: 100%; flex: 0 0 72px;
     background: transparent; border: none; border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: center; gap: 12px;
     cursor: pointer; -webkit-appearance: none;
@@ -144,10 +146,10 @@
   }
   .ctrl-play-btn:active { background: rgba(232,255,0,0.08); }
   .ctrl-play-btn.playing { background: rgba(232,255,0,0.05); }
-  .ctrl-play-icon { font-size: 22px; }
+  .ctrl-play-icon { font-size: 28px; }
   .ctrl-play-label {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px; letter-spacing: 4px; color: var(--accent);
+    font-size: 22px; letter-spacing: 4px; color: var(--accent);
   }
 
   /* Sliders area */
@@ -168,8 +170,8 @@
     min-width: 54px;
   }
   .ctrl-slider-val {
-    font-family: 'Bebas Neue', sans-serif; font-size: 22px;
-    min-width: 40px; text-align: right;
+    font-family: 'Bebas Neue', sans-serif; font-size: 26px;
+    min-width: 44px; text-align: right;
   }
   .ctrl-slider-val.accent { color: var(--accent); }
   .ctrl-slider-val.white { color: var(--text); }
@@ -184,7 +186,7 @@
 
   /* Bottom action row */
   .ctrl-actions {
-    flex: 0 0 44px; display: flex;
+    flex: 0 0 52px; display: flex;
   }
   .ctrl-action-btn {
     flex: 1; background: transparent; border: none;
@@ -199,7 +201,7 @@
 
   /* Conn status row */
   .ctrl-conn-row {
-    flex: 0 0 22px; display: flex; align-items: center;
+    flex: 0 0 28px; display: flex; align-items: center;
     padding: 0 16px; gap: 8px; border-top: 1px solid var(--border);
   }
   .conn-dot {
@@ -553,10 +555,11 @@ function calcHeight() {
     const w = document.getElementById('dispWrap');
     if (w) totalHeight = Math.max(0, w.scrollHeight - window.innerHeight);
   } else {
-    // Controller mirror is rendered at 844px wide (landscape), 390px tall viewport
+    // Controller: calculate based on display dimensions
+    // The mirror wrap renders at display width, so scrollHeight is in display coords
     const w = document.getElementById('ctrlTextWrap');
-    const dispHeight = displayH || 375;
-    if (w) totalHeight = Math.max(0, w.scrollHeight - dispHeight);
+    const dH = displayH || window._displayH || 844;
+    if (w) totalHeight = Math.max(0, w.scrollHeight - dH);
   }
 }
 
@@ -586,10 +589,11 @@ function joinAs(r) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(r === 'controller' ? 'screen-controller' : 'screen-display').classList.add('active');
   if (r === 'controller') {
-    // Mirror wrap: use a standard wide viewport so text centering is consistent
-    const wrap = document.getElementById('ctrlTextWrap');
-    if (wrap) wrap.style.width = '667px'; // narrowest CSS landscape viewport
-    setupMirrorGestures();
+    // Wait for layout before computing mirror dimensions
+    requestAnimationFrame(() => {
+      initMirrorScale();
+      setupMirrorGestures();
+    });
   }
   if (r === 'display') {
     if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(() => {});
@@ -618,7 +622,7 @@ function setupMirrorGestures() {
     if (Math.abs(dy) > 8) {
       moved = true;
       isSeeking = true;
-      const delta = -dy * (1 / MIRROR_SCALE) * 0.5;
+      const delta = -dy * (1 / (window._mirrorScale || MIRROR_SCALE)) * 0.5;
       currentPos = Math.max(0, Math.min(totalHeight, currentPos + delta));
       startY = e.touches[0].clientY;
       applyScrollPos();
@@ -726,34 +730,51 @@ function loadFile(e) {
   e.target.value = '';
 }
 
-window.addEventListener('resize', calcHeight);
+window.addEventListener('resize', () => {
+  if (role === 'controller') initMirrorScale();
+  calcHeight();
+});
 
 function initMirrorScale() {
   const mirror = document.getElementById('ctrlMirror');
   const wrap = document.getElementById('ctrlTextWrap');
+  const textEl = document.getElementById('ctrlText');
   if (!mirror || !wrap) return;
-  // Display is landscape: width = long side, height = short side
-  // Use displayW/displayH if known, otherwise assume standard landscape
-  const dW = displayW || 844;
-  const dH = displayH || 390;
-  const scale = mirror.offsetWidth / dW;
+
+  // Use actual display dimensions if known, otherwise reasonable defaults
+  const dW = displayW || 390;  // iPhone portrait width
+  const dH = displayH || 844;  // iPhone portrait height
+
+  // The wrap must render at the exact same width as the display viewport
+  // so line breaks happen at the same place
   wrap.style.width = dW + 'px';
+
+  // Padding matches display's default (32px), textPadding overrides are applied separately
+  wrap.style.paddingLeft = '32px';
+  wrap.style.paddingRight = '32px';
+
+  // Scale factor: fit display width into mirror width
+  const scale = mirror.offsetWidth / dW;
   wrap.style.transformOrigin = 'top left';
   wrap.dataset.scale = scale;
-  // Store for scroll transform
   window._mirrorScale = scale;
   window._displayH = dH;
+
+  // Set mirror height to show exactly one display screen worth of content
+  // mirrorHeight = dH * scale
+  const mirrorHeight = dH * scale;
+  mirror.style.flex = 'none';
+  mirror.style.height = mirrorHeight + 'px';
+
+  // Bottom padding on wrap must match display's 100vh equivalent
+  wrap.style.paddingBottom = dH + 'px';
+
   calcHeight();
 }
 
 function applyMirrorDimensions() {
   if (!displayW || !displayH) return;
-  const wrap = document.getElementById('ctrlTextWrap');
-  if (!wrap) return;
-  // Set wrap to exact display dimensions (unscaled)
-  wrap.style.width = displayW + 'px';
-  // Recalc height based on display's scrollHeight
-  setTimeout(calcHeight, 80);
+  initMirrorScale();
 }
 </script>
 </body>
