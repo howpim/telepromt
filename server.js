@@ -46,7 +46,7 @@ let state = {
   speed: 50,
   position: 0,
   fontSize: 52,
-  textPadding: 10,
+  textWidth: 400,
   lineHeight: 1.35,
   lastUpdate: Date.now(),
   displayW: 0,
@@ -162,9 +162,9 @@ wss.on('connection', (ws) => {
         state.fontSize = msg.fontSize;
         broadcastAll({ type: 'fontSize', fontSize: state.fontSize }, ws);
         break;
-      case 'textPadding':
-        state.textPadding = msg.textPadding;
-        broadcastAll({ type: 'textPadding', textPadding: state.textPadding }, ws);
+      case 'textWidth':
+        state.textWidth = msg.textWidth;
+        broadcastAll({ type: 'textWidth', textWidth: state.textWidth }, ws);
         break;
       case 'lineHeight':
         state.lineHeight = msg.lineHeight;
