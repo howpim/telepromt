@@ -76,7 +76,7 @@
   .ctrl-mirror-text-wrap {
     position: absolute;
     transform-origin: top left;
-    padding: 0 10%;
+    padding: 0 32px;
     padding-bottom: 844px;
     will-change: transform;
   }
@@ -87,6 +87,7 @@
     color: #fff;
     white-space: pre-wrap;
     word-break: break-word;
+    width: 500px; margin: 0 auto;
     text-align: center;
   }
   /* Cue line in mirror */
@@ -218,13 +219,14 @@
   #screen-display { background: #000; }
   .disp-wrap {
     position: absolute; width: 100%;
-    padding: 0 10% 100vh 10%;
+    padding: 0 32px 100vh 32px;
     will-change: transform;
   }
   .disp-text {
     font-family: 'IBM Plex Sans', sans-serif; font-weight: 300;
     font-size: 52px; line-height: 1.35; color: #fff;
     white-space: pre-wrap; word-break: break-word;
+    width: 500px; margin: 0 auto;
     text-align: center;
   }
   .disp-cue {
@@ -1096,13 +1098,12 @@ function initMirrorScale() {
 
   // The wrap renders at actual display width so line breaks match exactly
   wrap.style.width = dW + 'px';
+  wrap.style.paddingLeft = '32px';
+  wrap.style.paddingRight = '32px';
   wrap.style.transformOrigin = 'top left';
   wrap.dataset.scale = scale;
   window._mirrorScale = scale;
   window._displayH = dH;
-
-  // Apply current padding from state
-  applyTextPadding();
 
   // Mirror height = exactly one display screen, scaled
   const mirrorHeight = dH * scale;
