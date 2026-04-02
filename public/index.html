@@ -374,6 +374,7 @@
   </div>
   <div class="disp-cue"></div>
   <div class="disp-waiting" id="dispWaiting">ОЖИДАНИЕ СИГНАЛА...</div>
+  <div id="dispConnType" style="position:absolute; top:8px; right:12px; font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:2px; color:#333; z-index:10; text-transform:uppercase; pointer-events:none;">WS</div>
 </div>
 
 <!-- EDIT MODAL -->
@@ -408,8 +409,12 @@ const MIRROR_SCALE = 0.32;
 const RTC_CONFIG = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' }
-  ]
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' }
+  ],
+  iceCandidatePoolSize: 5
 };
 
 // Controller: map of displayId -> { pc, dc, ready }
@@ -568,6 +573,16 @@ async function createPeerConnection(displayId) {
   } catch (err) {
     console.warn('[RTC] Failed to create offer:', err);
   }
+
+  // Retry if DC doesn't open within 5 seconds
+  setTimeout(() => {
+    if (peer.ready) return; // already connected
+    if (!peers.has(displayId)) return; // already cleaned up
+    console.log(`[RTC] DataChannel timeout for display ${displayId}, retrying`);
+    pc.close();
+    peers.delete(displayId);
+    createPeerConnection(displayId);
+  }, 5000);
 }
 
 // Display: handle incoming offer from controller
@@ -589,8 +604,12 @@ async function handleOffer(msg) {
     displayDC.onopen = () => {
       rtcReady = true;
       console.log('[RTC] DataChannel open from controller');
+      updateDispConnType();
     };
-    displayDC.onclose = () => { rtcReady = false; };
+    displayDC.onclose = () => {
+      rtcReady = false;
+      updateDispConnType();
+    };
   };
 
   pc.onicecandidate = e => {
@@ -637,17 +656,32 @@ async function handleICE(msg) {
 function updateRTCStatus() {
   if (role !== 'controller') return;
   const anyReady = [...peers.values()].some(p => p.ready);
+  const allReady = peers.size > 0 && [...peers.values()].every(p => p.ready);
   rtcReady = anyReady;
-  // Update connection label to show P2P status
   const label = document.getElementById('connLabel');
   if (label) {
-    if (rtcReady) {
-      label.textContent = 'P2P';
+    if (allReady) {
+      label.textContent = 'P2P ✓';
       label.style.color = 'var(--green)';
+    } else if (anyReady) {
+      label.textContent = 'P2P ~';
+      label.style.color = 'var(--accent)';
     } else {
       label.textContent = 'ОНЛАЙН';
       label.style.color = '';
     }
+  }
+}
+
+function updateDispConnType() {
+  const el = document.getElementById('dispConnType');
+  if (!el) return;
+  if (displayDC && displayDC.readyState === 'open') {
+    el.textContent = 'P2P';
+    el.style.color = '#00ff88';
+  } else {
+    el.textContent = 'WS';
+    el.style.color = '#666';
   }
 }
 
