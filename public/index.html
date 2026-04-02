@@ -375,6 +375,7 @@
   <div class="disp-cue"></div>
   <div class="disp-waiting" id="dispWaiting">ОЖИДАНИЕ СИГНАЛА...</div>
   <div id="dispConnType" style="position:absolute; top:8px; right:12px; font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:2px; color:#333; z-index:10; text-transform:uppercase; pointer-events:none;">WS</div>
+  <button id="flipBtn" onclick="toggleFlip()" style="position:absolute; bottom:12px; right:12px; z-index:10; background:rgba(255,255,255,0.08); border:1px solid #333; color:#555; font-size:18px; width:44px; height:44px; border-radius:0; cursor:pointer; -webkit-appearance:none; display:flex; align-items:center; justify-content:center;">🪞</button>
 </div>
 
 <!-- EDIT MODAL -->
@@ -1032,6 +1033,16 @@ function replayFromStart() {
   updatePlayBtn();
   updateDim();
   sendCommand({ type: 'seek', position: 0 });
+}
+
+let flipped = false;
+function toggleFlip() {
+  flipped = !flipped;
+  const screen = document.getElementById('screen-display');
+  screen.style.transform = flipped ? 'scaleX(-1)' : '';
+  // Keep the button itself readable
+  const btn = document.getElementById('flipBtn');
+  btn.style.transform = flipped ? 'scaleX(-1)' : '';
 }
 
 function openEdit() {
