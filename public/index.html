@@ -87,7 +87,7 @@
     color: #fff;
     white-space: pre-wrap;
     word-break: break-word;
-    width: 500px; margin: 0 auto;
+    width: 400px; margin: 0 auto;
     text-align: center;
   }
   /* Cue line in mirror */
@@ -226,7 +226,7 @@
     font-family: 'IBM Plex Sans', sans-serif; font-weight: 300;
     font-size: 52px; line-height: 1.35; color: #fff;
     white-space: pre-wrap; word-break: break-word;
-    width: 500px; margin: 0 auto;
+    width: 400px; margin: 0 auto;
     text-align: center;
   }
   .disp-cue {
@@ -341,9 +341,9 @@
         <span class="ctrl-slider-val white" id="fontVal">52</span>
       </div>
       <div class="ctrl-slider-row">
-        <span class="ctrl-slider-label">Поля</span>
-        <input type="range" id="paddingSlider" min="5" max="35" value="10" oninput="onTextPadding(this.value)">
-        <span class="ctrl-slider-val white" id="paddingVal">10%</span>
+        <span class="ctrl-slider-label">Ширина</span>
+        <input type="range" id="textWidthSlider" min="200" max="600" value="400" oninput="onTextWidth(this.value)">
+        <span class="ctrl-slider-val white" id="textWidthVal">400</span>
       </div>
       <div class="ctrl-slider-row">
         <span class="ctrl-slider-label">Интерв</span>
@@ -397,7 +397,7 @@ const WS_URL = location.protocol === 'https:'
   ? `wss://${location.host}` : `ws://${location.host}`;
 
 let ws = null, role = null;
-let state = { text: '', playing: false, speed: 50, position: 0, fontSize: 52, textWidth: 600, lineHeight: 1.35 };
+let state = { text: '', playing: false, speed: 50, position: 0, fontSize: 52, textWidth: 400, lineHeight: 1.35 };
 let displayW = 0, displayH = 0;
 let animFrame = null, lastTimestamp = null;
 let currentPos = 0, totalHeight = 0;
@@ -745,8 +745,10 @@ function handleMessage(msg) {
     case 'fontSize':
       state.fontSize = msg.fontSize; applyFontSize(); break;
 
-    case 'textPadding':
-      state.textPadding = msg.textPadding; applyTextPadding(); break;
+    case 'textWidth':
+      state.textWidth = msg.textWidth; applyTextWidth();
+      setTimeout(calcHeight, 80);
+      break;
 
     case 'lineHeight':
       state.lineHeight = msg.lineHeight; applyLineHeight();
@@ -766,16 +768,16 @@ function applyState(s) {
     document.getElementById('speedVal').textContent = s.speed;
     document.getElementById('fontSlider').value = s.fontSize;
     document.getElementById('fontVal').textContent = s.fontSize;
-    if (s.textPadding != null) {
-      document.getElementById('paddingSlider').value = s.textPadding;
-      document.getElementById('paddingVal').textContent = s.textPadding + '%';
+    if (s.textWidth != null) {
+      document.getElementById('textWidthSlider').value = s.textWidth;
+      document.getElementById('textWidthVal').textContent = s.textWidth;
     }
     if (s.lineHeight != null) {
       document.getElementById('lineHeightSlider').value = Math.round(s.lineHeight * 100);
       document.getElementById('lineHeightVal').textContent = s.lineHeight.toFixed(2);
     }
   }
-  applyTextPadding();
+  applyTextWidth();
   applyLineHeight();
   updatePlayBtn(); updateDim();
   if (s.playing) { lastTimestamp = performance.now(); startScroll(); }
@@ -983,26 +985,22 @@ function onFontSize(val) {
   setTimeout(calcHeight, 80);
 }
 
-function onTextPadding(val) {
-  state.textPadding = +val;
-  document.getElementById('paddingVal').textContent = val + '%';
-  applyTextPadding();
-  sendCommand({ type: 'textPadding', textPadding: +val });
+function onTextWidth(val) {
+  state.textWidth = +val;
+  document.getElementById('textWidthVal').textContent = val;
+  applyTextWidth();
+  sendCommand({ type: 'textWidth', textWidth: +val });
   setTimeout(calcHeight, 80);
 }
 
-function applyTextPadding() {
-  const p = state.textPadding + '%';
-  // Apply padding to the wraps (left+right), text fills 100% of wrap
-  const wraps = [
-    document.getElementById('ctrlTextWrap'),
-    document.getElementById('dispWrap')
+function applyTextWidth() {
+  const w = (state.textWidth || 400) + 'px';
+  const els = [
+    document.getElementById('ctrlText'),
+    document.getElementById('dispText')
   ];
-  wraps.forEach(w => {
-    if (w) {
-      w.style.paddingLeft = p;
-      w.style.paddingRight = p;
-    }
+  els.forEach(el => {
+    if (el) el.style.width = w;
   });
 }
 
