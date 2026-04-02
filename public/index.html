@@ -76,8 +76,8 @@
   .ctrl-mirror-text-wrap {
     position: absolute;
     transform-origin: top left;
-    padding: 0 32px;
-    padding-bottom: 844px; /* will be updated by JS to match display height */
+    padding: 0 10%;
+    padding-bottom: 844px;
     will-change: transform;
   }
   .ctrl-mirror-text {
@@ -87,7 +87,6 @@
     color: #fff;
     white-space: pre-wrap;
     word-break: break-word;
-    width: 600px; margin: 0 auto;
     text-align: center;
   }
   /* Cue line in mirror */
@@ -219,14 +218,13 @@
   #screen-display { background: #000; }
   .disp-wrap {
     position: absolute; width: 100%;
-    padding: 0 32px 100vh 32px;
+    padding: 0 10% 100vh 10%;
     will-change: transform;
   }
   .disp-text {
     font-family: 'IBM Plex Sans', sans-serif; font-weight: 300;
     font-size: 52px; line-height: 1.35; color: #fff;
     white-space: pre-wrap; word-break: break-word;
-    width: 600px; margin: 0 auto;
     text-align: center;
   }
   .disp-cue {
@@ -931,9 +929,9 @@ function setupMirrorGestures() {
     applyScrollPos();
     updateProgress();
 
-    // Throttle network sends to ~30fps to avoid flooding
+    // Throttle network sends to ~60fps
     const now = Date.now();
-    if (now - lastSendTime > 33) {
+    if (now - lastSendTime > 16) {
       sendCommand({ type: 'seek', position: currentPos });
       lastSendTime = now;
     }
@@ -1098,12 +1096,13 @@ function initMirrorScale() {
 
   // The wrap renders at actual display width so line breaks match exactly
   wrap.style.width = dW + 'px';
-  wrap.style.paddingLeft = '32px';
-  wrap.style.paddingRight = '32px';
   wrap.style.transformOrigin = 'top left';
   wrap.dataset.scale = scale;
   window._mirrorScale = scale;
   window._displayH = dH;
+
+  // Apply current padding from state
+  applyTextPadding();
 
   // Mirror height = exactly one display screen, scaled
   const mirrorHeight = dH * scale;
