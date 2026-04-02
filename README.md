@@ -8,7 +8,7 @@
 2. Зайди на [railway.app](https://railway.app) → New Project → Deploy from GitHub repo
 3. Выбери репозиторий → Railway автоматически всё задеплоит
 4. В настройках проекта: Settings → Networking → Generate Domain
-5. Открывай ссылку на всех трёх iPhone в Safari
+5. Открывай ссылку на всех трёх iPhone в Safari.
 
 ## Использование
 
