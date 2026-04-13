@@ -538,6 +538,9 @@ function handleSignaling(msg) {
 
 // Controller: create peer connection to a display
 async function createPeerConnection(displayId, retryCount = 0) {
+  // Don't attempt if WS is not connected
+  if (!ws || ws.readyState !== 1) return;
+
   // Clean up any existing connection to this display
   const existing = peers.get(displayId);
   if (existing) {
@@ -667,17 +670,22 @@ async function handleICE(msg) {
 
 function updateRTCStatus() {
   if (role !== 'controller') return;
-  const anyReady = [...peers.values()].some(p => p.ready);
-  const allReady = peers.size > 0 && [...peers.values()].every(p => p.ready);
+  const total = peers.size;
+  const ready = [...peers.values()].filter(p => p.ready).length;
+  const anyReady = ready > 0;
+  const allReady = total > 0 && ready === total;
   rtcReady = anyReady;
   const label = document.getElementById('connLabel');
   if (label) {
-    if (allReady) {
-      label.textContent = 'P2P ✓';
+    if (allReady && total > 0) {
+      label.textContent = `P2P ${ready}/${total}`;
       label.style.color = 'var(--green)';
     } else if (anyReady) {
-      label.textContent = 'P2P ~';
+      label.textContent = `P2P ${ready}/${total}`;
       label.style.color = 'var(--accent)';
+    } else if (total > 0) {
+      label.textContent = `WS (${total})`;
+      label.style.color = '';
     } else {
       label.textContent = 'ОНЛАЙН';
       label.style.color = '';
@@ -765,8 +773,16 @@ function handleMessage(msg) {
 }
 
 function applyState(s) {
+  const hadText = !!state.text;
   state = { ...state, ...s };
-  currentPos = s.position;
+
+  // Only apply server position if:
+  // - first load (no text yet), or
+  // - not currently playing (paused state is authoritative)
+  if (!hadText || !s.playing) {
+    currentPos = s.position;
+  }
+
   setText(s.text);
   applyFontSize();
   setTimeout(() => { calcHeight(); applyScrollPos(); updateProgress(); }, 80);
