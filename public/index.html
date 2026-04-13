@@ -240,6 +240,19 @@
     letter-spacing: 3px; color: #2a2a2a; text-transform: uppercase;
     pointer-events: none;
   }
+  .disp-rotate-overlay {
+    position: absolute; inset: 0; z-index: 50;
+    background: #000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 16px;
+  }
+  .disp-rotate-overlay.hidden { display: none; }
+  .disp-rotate-icon { font-size: 48px; }
+  .disp-rotate-text {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+    letter-spacing: 3px; color: var(--muted); text-transform: uppercase;
+    text-align: center;
+  }
 
   /* ══ EDIT MODAL ══ */
   #editModal {
@@ -888,6 +901,10 @@ function joinAs(r) {
   }
   if (r === 'display') {
     if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(() => {});
+    // Force landscape in PWA mode
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(() => {});
+    }
   }
   connect();
 }
