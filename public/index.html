@@ -890,10 +890,9 @@ function joinAs(r) {
   }
   if (r === 'display') {
     if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(() => {});
-    // Force landscape in PWA mode
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock('landscape').catch(() => {});
-    }
+    // Force landscape display via CSS rotation when phone is in portrait
+    forceDisplayLandscape();
+    window.addEventListener('resize', forceDisplayLandscape);
   }
   connect();
 }
@@ -1042,10 +1041,55 @@ function replayFromStart() {
 }
 
 let flipped = false;
+let rotated = false;
+
+function forceDisplayLandscape() {
+  const screen = document.getElementById('screen-display');
+  if (!screen) return;
+  const isPortrait = window.innerHeight > window.innerWidth;
+  rotated = isPortrait;
+  applyDisplayTransform();
+
+  if (isPortrait) {
+    // In portrait: rotate screen and swap dimensions
+    screen.style.width = window.innerHeight + 'px';
+    screen.style.height = window.innerWidth + 'px';
+  } else {
+    screen.style.width = '';
+    screen.style.height = '';
+  }
+
+  // Report the effective landscape dimensions to controller
+  const effectiveW = isPortrait ? window.innerHeight : window.innerWidth;
+  const effectiveH = isPortrait ? window.innerWidth : window.innerHeight;
+  if (ws && ws.readyState === 1) {
+    ws.send(JSON.stringify({ type: 'join', role: 'display', displayW: effectiveW, displayH: effectiveH }));
+  }
+  setTimeout(calcHeight, 100);
+}
+
+function applyDisplayTransform() {
+  const screen = document.getElementById('screen-display');
+  if (!screen) return;
+  let t = '';
+  if (rotated) t += 'rotate(90deg) ';
+  if (flipped) t += 'scaleX(-1) ';
+  screen.style.transform = t || '';
+  screen.style.transformOrigin = rotated ? 'top left' : '';
+  if (rotated) {
+    screen.style.position = 'absolute';
+    screen.style.top = '0';
+    screen.style.left = window.innerWidth + 'px';
+  } else {
+    screen.style.position = '';
+    screen.style.top = '';
+    screen.style.left = '';
+  }
+}
+
 function toggleFlip() {
   flipped = !flipped;
-  const screen = document.getElementById('screen-display');
-  screen.style.transform = flipped ? 'scaleX(-1)' : '';
+  applyDisplayTransform();
   // Keep the button itself readable
   const btn = document.getElementById('flipBtn');
   btn.style.transform = flipped ? 'scaleX(-1)' : '';
