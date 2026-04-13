@@ -399,7 +399,6 @@ const WS_URL = location.protocol === 'https:'
 
 let ws = null, role = null;
 let state = { text: '', playing: false, speed: 50, position: 0, fontSize: 52, textWidth: 400, lineHeight: 1.35 };
-let displayW = 0, displayH = 0;
 let animFrame = null, lastTimestamp = null;
 let currentPos = 0, totalHeight = 0;
 let isSeeking = false;
@@ -473,10 +472,6 @@ function connect() {
   ws.onopen = () => {
     setConnected(true);
     const msg = { type: 'join', role };
-    if (role === 'display') {
-      msg.displayW = window.innerWidth;
-      msg.displayH = window.innerHeight;
-    }
     ws.send(JSON.stringify(msg));
   };
   ws.onclose = () => {
@@ -702,11 +697,6 @@ function setConnected(v) {
 function handleMessage(msg) {
   switch (msg.type) {
     case 'state': applyState(msg); break;
-    case 'displayDimensions':
-      displayW = msg.displayW;
-      displayH = msg.displayH;
-      if (role === 'controller') { applyMirrorDimensions(); initMirrorScale(); }
-      break;
 
     case 'play':
       state.playing = true; state.speed = msg.speed;
@@ -849,7 +839,7 @@ function calcHeight() {
     // Controller: calculate based on display dimensions
     // The mirror wrap renders at display width, so scrollHeight is in display coords
     const w = document.getElementById('ctrlTextWrap');
-    const dH = displayH || window._displayH || 844;
+    const dH = 390; // fixed landscape height
     if (w) totalHeight = Math.max(0, w.scrollHeight - dH);
   }
 }
@@ -1051,7 +1041,6 @@ function forceDisplayLandscape() {
   applyDisplayTransform();
 
   if (isPortrait) {
-    // In portrait: rotate screen and swap dimensions
     screen.style.width = window.innerHeight + 'px';
     screen.style.height = window.innerWidth + 'px';
   } else {
@@ -1059,12 +1048,6 @@ function forceDisplayLandscape() {
     screen.style.height = '';
   }
 
-  // Report the effective landscape dimensions to controller
-  const effectiveW = isPortrait ? window.innerHeight : window.innerWidth;
-  const effectiveH = isPortrait ? window.innerWidth : window.innerHeight;
-  if (ws && ws.readyState === 1) {
-    ws.send(JSON.stringify({ type: 'join', role: 'display', displayW: effectiveW, displayH: effectiveH }));
-  }
   setTimeout(calcHeight, 100);
 }
 
@@ -1142,9 +1125,9 @@ function initMirrorScale() {
   const wrap = document.getElementById('ctrlTextWrap');
   if (!mirror || !wrap) return;
 
-  // Use actual display dimensions if known, otherwise reasonable defaults
-  const dW = displayW || 390;
-  const dH = displayH || 844;
+  // Fixed landscape dimensions (display is always forced to landscape)
+  const dW = 844;
+  const dH = 390;
 
   // Mirror can take at most 45% of the controller's screen height
   const maxMirrorH = window.innerHeight * 0.45;
@@ -1181,11 +1164,6 @@ function initMirrorScale() {
   }
 
   calcHeight();
-}
-
-function applyMirrorDimensions() {
-  if (!displayW || !displayH) return;
-  initMirrorScale();
 }
 </script>
 </body>
