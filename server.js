@@ -48,9 +48,7 @@ let state = {
   fontSize: 52,
   textWidth: 400,
   lineHeight: 1.35,
-  lastUpdate: Date.now(),
-  displayW: 0,
-  displayH: 0
+  lastUpdate: Date.now()
 };
 
 function sendTo(ws, msg) {
@@ -82,23 +80,11 @@ wss.on('connection', (ws) => {
           // Tell controller about existing displays so it can create peer connections
           displays.forEach((dws, did) => {
             sendTo(ws, { type: 'display-joined', displayId: did });
-            if (dws._displayW) {
-              sendTo(ws, { type: 'displayDimensions', displayW: dws._displayW, displayH: dws._displayH });
-            }
           });
         } else {
           displays.set(id, ws);
-          if (msg.displayW && msg.displayH) {
-            ws._displayW = msg.displayW;
-            ws._displayH = msg.displayH;
-            state.displayW = msg.displayW;
-            state.displayH = msg.displayH;
-          }
           // Tell controller a new display joined
           sendTo(controller, { type: 'display-joined', displayId: id });
-          if (msg.displayW) {
-            sendTo(controller, { type: 'displayDimensions', displayW: msg.displayW, displayH: msg.displayH });
-          }
         }
         // Send current state for initial sync
         sendTo(ws, { type: 'state', ...state });
