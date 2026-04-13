@@ -468,6 +468,9 @@ function sendCommand(msg) {
 
 // ── CONNECT (WebSocket for signaling + fallback) ──
 function connect() {
+  if (ws) {
+    try { ws.close(); } catch {}
+  }
   ws = new WebSocket(WS_URL);
   ws.onopen = () => {
     setConnected(true);
@@ -476,19 +479,29 @@ function connect() {
   };
   ws.onclose = () => {
     setConnected(false);
-    rtcReady = false;
-    setTimeout(connect, 2000);
+    // Clean up all peer connections on WS disconnect
+    if (role === 'controller') {
+      peers.forEach(peer => { try { peer.pc.close(); } catch {} });
+      peers.clear();
+      updateRTCStatus();
+    }
+    if (role === 'display') {
+      if (displayPC) { try { displayPC.close(); } catch {} }
+      displayPC = null;
+      displayDC = null;
+      rtcReady = false;
+    }
+    setTimeout(connect, 1500);
   };
   ws.onmessage = e => {
     const msg = JSON.parse(e.data);
-    // Handle signaling messages
     if (msg.type.startsWith('rtc-') || msg.type === 'display-joined' || msg.type === 'display-left') {
       handleSignaling(msg);
       return;
     }
     // On display: only skip WS commands if DataChannel is genuinely open right now
     if (role === 'display' && displayDC && displayDC.readyState === 'open') {
-      if (msg.type === 'state' || msg.type === 'displayDimensions') {
+      if (msg.type === 'state') {
         handleMessage(msg);
       }
       return;
@@ -524,7 +537,14 @@ function handleSignaling(msg) {
 }
 
 // Controller: create peer connection to a display
-async function createPeerConnection(displayId) {
+async function createPeerConnection(displayId, retryCount = 0) {
+  // Clean up any existing connection to this display
+  const existing = peers.get(displayId);
+  if (existing) {
+    try { existing.pc.close(); } catch {}
+    peers.delete(displayId);
+  }
+
   const pc = new RTCPeerConnection(RTC_CONFIG);
   const dc = pc.createDataChannel('commands', { ordered: true });
   const peer = { pc, dc, ready: false };
@@ -541,43 +561,39 @@ async function createPeerConnection(displayId) {
   };
 
   pc.onicecandidate = e => {
-    if (e.candidate) {
-      ws?.send(JSON.stringify({ type: 'rtc-ice', candidate: e.candidate, targetId: displayId }));
+    if (e.candidate && ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: 'rtc-ice', candidate: e.candidate, targetId: displayId }));
     }
   };
 
   pc.onconnectionstatechange = () => {
-    if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-      console.log(`[RTC] Connection ${pc.connectionState} to display ${displayId}, will retry`);
+    if (pc.connectionState === 'failed') {
       peer.ready = false;
       updateRTCStatus();
-      // Retry after a short delay
-      setTimeout(() => {
-        if (peers.has(displayId)) {
-          pc.close();
-          peers.delete(displayId);
-          createPeerConnection(displayId);
-        }
-      }, 2000);
+      if (retryCount < 2 && peers.get(displayId) === peer) {
+        setTimeout(() => createPeerConnection(displayId, retryCount + 1), 2000);
+      }
     }
   };
 
   try {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
-    ws?.send(JSON.stringify({ type: 'rtc-offer', offer, targetId: displayId }));
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: 'rtc-offer', offer, targetId: displayId }));
+    }
   } catch (err) {
     console.warn('[RTC] Failed to create offer:', err);
   }
 
-  // Retry if DC doesn't open within 5 seconds
+  // Timeout: if DC doesn't open in 5s, retry (max 2 retries)
   setTimeout(() => {
-    if (peer.ready) return; // already connected
-    if (!peers.has(displayId)) return; // already cleaned up
-    console.log(`[RTC] DataChannel timeout for display ${displayId}, retrying`);
-    pc.close();
-    peers.delete(displayId);
-    createPeerConnection(displayId);
+    if (peer.ready) return;
+    if (peers.get(displayId) !== peer) return; // already replaced
+    if (retryCount < 2) {
+      console.log(`[RTC] Timeout for display ${displayId}, retry ${retryCount + 1}`);
+      createPeerConnection(displayId, retryCount + 1);
+    }
   }, 5000);
 }
 
@@ -1118,6 +1134,24 @@ function loadFile(e) {
 window.addEventListener('resize', () => {
   if (role === 'controller') initMirrorScale();
   calcHeight();
+});
+
+// ── KEEPALIVE & RECONNECT ──
+// Ping every 15s to keep WS alive
+setInterval(() => {
+  if (ws && ws.readyState === 1) {
+    ws.send(JSON.stringify({ type: 'ping' }));
+  }
+}, 15000);
+
+// Reconnect when app comes back to foreground
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && role) {
+    // Check if WS is dead
+    if (!ws || ws.readyState > 1) {
+      connect();
+    }
+  }
 });
 
 function initMirrorScale() {
