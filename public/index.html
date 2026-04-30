@@ -1009,8 +1009,8 @@ function onSpeed(val) {
 function onFontSize(val) {
   state.fontSize = +val;
   document.getElementById('fontVal').textContent = val;
+  applyFontSize();
   sendCommand({ type: 'fontSize', fontSize: +val });
-  setTimeout(calcHeight, 80);
 }
 
 function onTextWidth(val) {
