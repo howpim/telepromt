@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Prompter">
 <meta name="theme-color" content="#000000">
-<link rel="manifest" href="/manifest.json">
+<link rel="manifest" href="manifest.json">
 <title>Телепромптер</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
@@ -394,8 +394,9 @@
 <input type="file" id="fileInput" accept=".txt" style="display:none" onchange="loadFile(event)">
 
 <script>
-const WS_URL = location.protocol === 'https:'
-  ? `wss://${location.host}` : `ws://${location.host}`;
+// Same directory as the page, so /k/<key>/ is carried into the socket URL
+const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://')
+  + location.host + location.pathname.replace(/[^/]*$/, '');
 
 let ws = null, role = null;
 let state = { text: '', playing: false, speed: 50, position: 0, fontSize: 52, textWidth: 400, lineHeight: 1.35 };

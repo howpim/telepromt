@@ -1,27 +1,66 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT || 8080;
 const HOST = process.env.HOST || '0.0.0.0';
+const ACCESS_KEY = process.env.ACCESS_KEY || '';
+const PUBLIC_DIR = path.join(__dirname, 'public');
+
+function keyMatches(key) {
+  const a = Buffer.from(key), b = Buffer.from(ACCESS_KEY);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+// With ACCESS_KEY set, the app lives only under /k/<key>/ — returns the path
+// inside that prefix ('' when the trailing slash is missing), or null for a
+// wrong/missing key. Without ACCESS_KEY the app is served from / as before.
+function stripKey(pathname) {
+  if (!ACCESS_KEY) return pathname;
+  const m = pathname.match(/^\/k\/([^/]+)(\/.*)?$/);
+  if (!m || !keyMatches(m[1])) return null;
+  return m[2] || '';
+}
+
+function notFound(res) {
+  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.end('Not found');
+}
 
 // HTTP server
 const server = http.createServer((req, res) => {
-  if (req.url === '/health' || req.url === '/healthz') {
+  // Keep the key out of Referer headers and search engines
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+
+  const pathname = new URL(req.url, 'http://localhost').pathname;
+  if (pathname === '/health' || pathname === '/healthz') {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     res.end('ok');
     return;
   }
 
-  const urlPath = req.url === '/' ? '/index.html' : req.url;
-  const filePath = path.join(__dirname, 'public', urlPath);
+  const rest = stripKey(pathname);
+  if (rest === null) return notFound(res);
+  if (rest === '') {
+    res.writeHead(301, { Location: pathname + '/' });
+    res.end();
+    return;
+  }
+
+  let urlPath;
+  try { urlPath = decodeURIComponent(rest); } catch { return notFound(res); }
+  if (urlPath === '/') urlPath = '/index.html';
+  const filePath = path.join(PUBLIC_DIR, urlPath);
+  if (!filePath.startsWith(PUBLIC_DIR + path.sep)) return notFound(res);
   const ext = path.extname(filePath);
   const mime = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png' };
 
   fs.readFile(filePath, (err, data) => {
     if (err) {
-      fs.readFile(path.join(__dirname, 'public', 'index.html'), (err2, data2) => {
+      fs.readFile(path.join(PUBLIC_DIR, 'index.html'), (err2, data2) => {
         if (err2) { res.writeHead(404); res.end('Not found'); return; }
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end(data2);
@@ -34,7 +73,10 @@ const server = http.createServer((req, res) => {
 });
 
 // WebSocket server — signaling + fallback relay
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({
+  server,
+  verifyClient: ({ req }) => stripKey(new URL(req.url, 'http://localhost').pathname) !== null
+});
 
 let clientId = 0;
 let controller = null;
