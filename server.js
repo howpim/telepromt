@@ -62,10 +62,31 @@ function broadcastAll(msg, excludeWs) {
   });
 }
 
+// ── Zombie detection: WS-level ping every 10s, kill clients that don't answer ──
+setInterval(() => {
+  wss.clients.forEach(ws => {
+    if (ws._alive === false) { ws.terminate(); return; }
+    ws._alive = false;
+    ws.ping();
+  });
+}, 10000);
+
+// Remove dead displays from the map before reporting them to a controller
+function cleanDisplays() {
+  const dead = [];
+  displays.forEach((dws, did) => { if (dws.readyState > 1) dead.push(did); });
+  dead.forEach(did => {
+    displays.delete(did);
+    if (controller) sendTo(controller, { type: 'display-left', displayId: did });
+  });
+}
+
 wss.on('connection', (ws) => {
   const id = ++clientId;
   ws._id = id;
   ws._role = null;
+  ws._alive = true;
+  ws.on('pong', () => { ws._alive = true; });
 
   ws.on('message', (raw) => {
     let msg;
@@ -77,7 +98,8 @@ wss.on('connection', (ws) => {
         ws._role = msg.role;
         if (msg.role === 'controller') {
           controller = ws;
-          // Tell controller about existing displays so it can create peer connections
+          // Drop zombies first, then tell controller about live displays
+          cleanDisplays();
           displays.forEach((dws, did) => {
             sendTo(ws, { type: 'display-joined', displayId: did });
           });
