@@ -4,6 +4,7 @@ const path = require('path');
 const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT || 8080;
+const HOST = process.env.HOST || '0.0.0.0';
 
 // HTTP server
 const server = http.createServer((req, res) => {
@@ -195,6 +196,6 @@ wss.on('connection', (ws) => {
   });
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Teleprompter signaling server on port ${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`Teleprompter signaling server on ${HOST}:${PORT}`);
 });
