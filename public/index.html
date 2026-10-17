@@ -276,6 +276,113 @@
   }
   .edit-btn.primary { border-color: var(--accent); color: var(--accent); background: rgba(232,255,0,0.05); }
   .edit-btn:active { opacity: 0.7; }
+
+  /* ══ SELFIE ══ */
+  #screen-selfie { position: relative; overflow: hidden; background: #000; }
+  .sf-video {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; transform: scaleX(-1); /* preview mirrored like the iPhone camera; recording is not */
+  }
+  .sf-band {
+    position: absolute; left: 0; right: 0; top: env(safe-area-inset-top, 0px);
+    height: 30%; z-index: 2; touch-action: none;
+    display: flex; justify-content: center;
+  }
+  .sf-box { position: relative; height: 100%; overflow: hidden; border-radius: 0 0 10px 10px; flex-shrink: 0; }
+  .sf-text-wrap { padding: 6px 12px 0; will-change: transform; }
+  .sf-text {
+    font-family: 'IBM Plex Sans', sans-serif; font-weight: 500; line-height: 1.3;
+    white-space: pre-wrap; word-break: break-word; text-align: center;
+  }
+  .sf-empty {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 2px;
+    color: rgba(255,255,255,0.6); text-transform: uppercase; pointer-events: none;
+  }
+  .sf-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; }
+  .sf-progress div { height: 100%; width: 0; background: var(--accent); }
+  .sf-cam-msg {
+    position: absolute; inset: 0; z-index: 1; display: none;
+    flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 32px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 1px;
+    color: var(--muted); text-align: center;
+  }
+  .sf-cam-msg.show { display: flex; }
+
+  .sf-bar {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 4;
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    display: grid; grid-template-columns: 1fr 1fr auto 1fr 1fr; align-items: center; justify-items: center;
+    background: linear-gradient(transparent, rgba(0,0,0,0.55));
+  }
+  .sf-btn {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.18);
+    color: #fff; font-size: 20px; cursor: pointer; -webkit-appearance: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sf-btn:active, .sf-btn.on { background: rgba(232,255,0,0.25); border-color: var(--accent); }
+  .sf-rec {
+    width: 72px; height: 72px; border-radius: 50%; border: 4px solid #fff;
+    background: transparent; cursor: pointer; -webkit-appearance: none;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .sf-rec span {
+    width: 56px; height: 56px; border-radius: 50%; background: #ff3b30;
+    transition: all 0.2s;
+  }
+  .sf-rec.recording span { width: 28px; height: 28px; border-radius: 6px; }
+  .sf-timer {
+    font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #fff;
+    background: rgba(255,59,48,0.85); padding: 3px 8px; border-radius: 4px;
+  }
+  .sf-timer:empty { display: none; }
+
+  .sf-settings {
+    position: absolute; left: 0; right: 0; z-index: 3; display: none;
+    bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+    max-height: 52%; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    background: rgba(10,10,10,0.82); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+  }
+  .sf-settings.open { display: block; }
+  .sf-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 18px; border-bottom: 1px solid var(--border);
+  }
+  .sf-label {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 2px;
+    color: #888; text-transform: uppercase; min-width: 62px;
+  }
+  .sf-val { font-family: 'Bebas Neue', sans-serif; font-size: 22px; min-width: 44px; text-align: right; color: var(--text); }
+  .sf-swatches { flex: 1; display: flex; gap: 10px; align-items: center; }
+  .sf-swatch {
+    width: 28px; height: 28px; border-radius: 50%; border: 2px solid #333; cursor: pointer;
+    -webkit-appearance: none; padding: 0;
+  }
+  .sf-swatch.on { border-color: #fff; box-shadow: 0 0 0 2px #000 inset; }
+  .sf-color-input { width: 32px; height: 32px; border: none; background: none; padding: 0; }
+  .sf-actions { display: flex; }
+  .sf-actions button {
+    flex: 1; background: transparent; border: none; border-right: 1px solid var(--border);
+    color: #aaa; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 2px;
+    text-transform: uppercase; padding: 16px 4px; cursor: pointer; -webkit-appearance: none;
+  }
+  .sf-actions button:last-child { border-right: none; }
+  .sf-actions button:active { color: var(--text); background: rgba(255,255,255,0.05); }
+  .sf-info { padding: 10px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1px; color: #555; }
+
+  .sf-save {
+    position: absolute; inset: 0; z-index: 10; display: none;
+    background: rgba(0,0,0,0.7); align-items: center; justify-content: center; padding: 24px;
+  }
+  .sf-save.open { display: flex; }
+  .sf-save-box {
+    width: 100%; max-width: 320px; background: var(--bg); border: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 12px; padding: 20px;
+  }
+  .sf-save-title { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 3px; color: var(--accent); }
+  .sf-save-meta { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #888; }
 </style>
 </head>
 <body>
@@ -300,6 +407,13 @@
         <span class="btn-role-text">
           <span class="btn-role-label">Дисплей</span>
           <span class="btn-role-desc">Только отображение текста</span>
+        </span>
+      </button>
+      <button class="btn-role" onclick="startSelfie()">
+        <span class="btn-role-icon">🤳</span>
+        <span class="btn-role-text">
+          <span class="btn-role-label">Селфи</span>
+          <span class="btn-role-desc">Камера + текст, запись видео</span>
         </span>
       </button>
     </div>
@@ -376,6 +490,67 @@
   <div class="disp-waiting" id="dispWaiting">ОЖИДАНИЕ СИГНАЛА...</div>
   <div id="dispConnType" style="position:absolute; top:8px; right:12px; font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:2px; color:#333; z-index:10; text-transform:uppercase; pointer-events:none;">WS</div>
   <button id="flipBtn" onclick="toggleFlip()" style="position:absolute; bottom:12px; right:12px; z-index:10; background:rgba(255,255,255,0.08); border:1px solid #333; color:#555; font-size:18px; width:44px; height:44px; border-radius:0; cursor:pointer; -webkit-appearance:none; display:flex; align-items:center; justify-content:center;">🪞</button>
+</div>
+
+<!-- SELFIE (standalone: no controller, no WS) -->
+<div id="screen-selfie" class="screen">
+  <video class="sf-video" id="sfVideo" playsinline autoplay muted></video>
+  <div class="sf-cam-msg" id="sfCamMsg">
+    <div id="sfCamMsgText"></div>
+    <button class="edit-btn primary" style="flex:none; padding:12px 20px;" onclick="sfStartCamera()">Включить камеру</button>
+  </div>
+
+  <div class="sf-band" id="sfBand">
+    <div class="sf-box" id="sfBox">
+      <div class="sf-text-wrap" id="sfTextWrap"><div class="sf-text" id="sfText"></div></div>
+      <div class="sf-empty" id="sfEmpty">Загрузите текст 📁</div>
+      <div class="sf-progress"><div id="sfProgress"></div></div>
+    </div>
+  </div>
+
+  <div class="sf-settings" id="sfSettings">
+    <div class="sf-row"><span class="sf-label">Размер</span><input type="range" min="14" max="80" data-sf="fontSize"><span class="sf-val" data-sf-val="fontSize"></span></div>
+    <div class="sf-row"><span class="sf-label">Сдвиг ↔</span><input type="range" min="-150" max="150" data-sf="offsetX"><span class="sf-val" data-sf-val="offsetX"></span></div>
+    <div class="sf-row"><span class="sf-label">Ширина</span><input type="range" min="120" max="440" data-sf="textWidth"><span class="sf-val" data-sf-val="textWidth"></span></div>
+    <div class="sf-row"><span class="sf-label">Скорость</span><input type="range" min="5" max="200" data-sf="speed"><span class="sf-val" data-sf-val="speed"></span></div>
+    <div class="sf-row"><span class="sf-label">Высота</span><input type="range" min="10" max="60" data-sf="bandHeight"><span class="sf-val" data-sf-val="bandHeight"></span></div>
+    <div class="sf-row"><span class="sf-label">Фон</span><input type="range" min="0" max="90" data-sf="bgAlpha"><span class="sf-val" data-sf-val="bgAlpha"></span></div>
+    <div class="sf-row"><span class="sf-label">Обводка</span><input type="range" min="0" max="6" step="0.5" data-sf="outline"><span class="sf-val" data-sf-val="outline"></span></div>
+    <div class="sf-row">
+      <span class="sf-label">Цвет</span>
+      <div class="sf-swatches" id="sfSwatches">
+        <button class="sf-swatch" data-color="#ffffff" style="background:#ffffff"></button>
+        <button class="sf-swatch" data-color="#ffe600" style="background:#ffe600"></button>
+        <button class="sf-swatch" data-color="#00ff88" style="background:#00ff88"></button>
+        <button class="sf-swatch" data-color="#5ad8ff" style="background:#5ad8ff"></button>
+        <button class="sf-swatch" data-color="#ff7ad9" style="background:#ff7ad9"></button>
+        <input type="color" class="sf-color-input" id="sfColorInput">
+      </div>
+    </div>
+    <div class="sf-actions">
+      <button onclick="sfOpenEdit()">✏️ Текст</button>
+      <button onclick="sfRewind()">🔄 В начало</button>
+      <button onclick="sfResetSettings()">Сброс</button>
+    </div>
+    <div class="sf-info" id="sfInfo"></div>
+  </div>
+
+  <div class="sf-save" id="sfSave">
+    <div class="sf-save-box">
+      <div class="sf-save-title">Дубль готов</div>
+      <div class="sf-save-meta" id="sfSaveMeta"></div>
+      <button class="edit-btn primary" onclick="sfSaveVideo()">⬇ Сохранить</button>
+      <button class="edit-btn" onclick="sfCloseSave()">Закрыть</button>
+    </div>
+  </div>
+
+  <div class="sf-bar">
+    <button class="sf-btn" onclick="document.getElementById('fileInput').click()">📁</button>
+    <button class="sf-btn" id="sfPlayBtn" onclick="sfTogglePlay()">▶</button>
+    <button class="sf-rec" id="sfRecBtn" onclick="sfToggleRec()"><span></span></button>
+    <span class="sf-timer" id="sfTimer"></span>
+    <button class="sf-btn" id="sfSettingsBtn" onclick="sfToggleSettings()">⚙</button>
+  </div>
 </div>
 
 <!-- EDIT MODAL -->
@@ -1124,6 +1299,7 @@ function closeEdit() {
 function sendText() {
   const text = document.getElementById('scriptInput').value.trim();
   if (!text) return;
+  if (role === 'selfie') { sfSetText(text); closeEdit(); return; }
   // Apply locally on controller
   state.position = 0;
   state.playing = false;
@@ -1141,6 +1317,7 @@ function loadFile(e) {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = ev => {
+    if (role === 'selfie') { sfSetText(ev.target.result.trim()); return; }
     document.getElementById('scriptInput').value = ev.target.result;
     document.getElementById('editModal').classList.add('active');
   };
@@ -1163,7 +1340,7 @@ setInterval(() => {
 
 // Reconnect when app comes back to foreground
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && role) {
+  if (document.visibilityState === 'visible' && role && role !== 'selfie') {
     // Check if WS is dead
     if (!ws || ws.readyState > 1) {
       connect();
@@ -1216,6 +1393,351 @@ function initMirrorScale() {
 
   calcHeight();
 }
+
+// ══ SELFIE ══
+// Standalone mode: own camera, own scroll loop, own settings. Never connects
+// to the server and never touches controller/display state.
+const SF_DEFAULTS = {
+  fontSize: 28, offsetX: 0, textWidth: 320, speed: 35,
+  bandHeight: 30, bgAlpha: 45, outline: 1.5, color: '#ffffff'
+};
+const sf = {
+  ...SF_DEFAULTS, text: '',
+  pos: 0, playing: false, last: null, raf: null,
+  stream: null, recorder: null, recStart: 0, recTimer: null, blob: null, blobDur: 0
+};
+const sfEl = id => document.getElementById(id);
+
+function startSelfie() {
+  role = 'selfie';
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  sfEl('screen-selfie').classList.add('active');
+  sfLoadSettings();
+  sfBindSettings();
+  sfSetText(sf.text, true);
+  sfSetupBandGestures();
+  sfKeepAwake();
+  sfStartCamera();
+}
+
+// ── Settings (remembered per phone: the lens offset differs between models) ──
+function sfLoadSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('prompter-selfie') || '{}');
+    Object.keys(SF_DEFAULTS).forEach(k => { if (saved[k] != null) sf[k] = saved[k]; });
+    if (typeof saved.text === 'string') sf.text = saved.text;
+  } catch {}
+}
+function sfSaveSettings() {
+  try {
+    const out = { text: sf.text };
+    Object.keys(SF_DEFAULTS).forEach(k => out[k] = sf[k]);
+    localStorage.setItem('prompter-selfie', JSON.stringify(out));
+  } catch {}
+}
+
+function sfFormat(key, v) {
+  if (key === 'offsetX') return (v > 0 ? '+' : '') + v;
+  if (key === 'bandHeight' || key === 'bgAlpha') return v + '%';
+  return v;
+}
+
+function sfBindSettings() {
+  document.querySelectorAll('[data-sf]').forEach(input => {
+    const key = input.dataset.sf;
+    input.value = sf[key];
+    input.oninput = () => {
+      sf[key] = +input.value;
+      sfApplyStyle();
+      sfSaveSettings();
+    };
+  });
+  document.querySelectorAll('.sf-swatch').forEach(b => {
+    b.onclick = () => sfSetColor(b.dataset.color);
+  });
+  sfEl('sfColorInput').oninput = e => sfSetColor(e.target.value);
+  sfApplyStyle();
+}
+
+function sfSetColor(c) {
+  sf.color = c;
+  sfApplyStyle();
+  sfSaveSettings();
+}
+
+function sfOutlineShadow(r) {
+  if (!r) return 'none';
+  // Ring of hard shadows — works on any text, unlike -webkit-text-stroke which eats into thin glyphs
+  const n = 16, out = [];
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    out.push(`${(Math.cos(a) * r).toFixed(2)}px ${(Math.sin(a) * r).toFixed(2)}px 0 #000`);
+  }
+  return out.join(',');
+}
+
+function sfApplyStyle() {
+  const band = sfEl('sfBand'), box = sfEl('sfBox'), text = sfEl('sfText');
+  band.style.height = sf.bandHeight + '%';
+  box.style.width = sf.textWidth + 'px';
+  box.style.transform = `translateX(${sf.offsetX}px)`;
+  box.style.background = `rgba(0,0,0,${sf.bgAlpha / 100})`;
+  text.style.fontSize = sf.fontSize + 'px';
+  text.style.color = sf.color;
+  text.style.textShadow = sfOutlineShadow(sf.outline);
+  // Let the last line scroll all the way up to the top of the band
+  sfEl('sfTextWrap').style.paddingBottom = band.offsetHeight + 'px';
+
+  document.querySelectorAll('[data-sf-val]').forEach(el => {
+    el.textContent = sfFormat(el.dataset.sfVal, sf[el.dataset.sfVal]);
+  });
+  document.querySelectorAll('[data-sf]').forEach(input => { input.value = sf[input.dataset.sf]; });
+  document.querySelectorAll('.sf-swatch').forEach(b => b.classList.toggle('on', b.dataset.color === sf.color));
+  sfEl('sfColorInput').value = sf.color;
+
+  sf.pos = Math.min(sf.pos, sfMaxPos());
+  sfApplyPos();
+}
+
+function sfResetSettings() {
+  Object.assign(sf, SF_DEFAULTS);
+  sfApplyStyle();
+  sfSaveSettings();
+}
+
+function sfToggleSettings() {
+  const open = sfEl('sfSettings').classList.toggle('open');
+  sfEl('sfSettingsBtn').classList.toggle('on', open);
+}
+
+// ── Text & scroll ──
+function sfSetText(text, keepPos) {
+  sf.text = text || '';
+  sfEl('sfText').textContent = sf.text;
+  sfEl('sfEmpty').style.display = sf.text ? 'none' : '';
+  if (!keepPos) sf.pos = 0;
+  sfSetPlaying(false);
+  sfSaveSettings();
+  requestAnimationFrame(sfApplyStyle);
+}
+
+function sfOpenEdit() {
+  sfEl('scriptInput').value = sf.text;
+  document.querySelector('#editModal .edit-btn.primary').textContent = 'Готово';
+  sfEl('editModal').classList.add('active');
+  setTimeout(() => sfEl('scriptInput').focus(), 100);
+}
+
+function sfMaxPos() {
+  const t = sfEl('sfText');
+  return Math.max(0, t.offsetHeight - sf.fontSize * 1.3);
+}
+
+function sfApplyPos() {
+  sfEl('sfTextWrap').style.transform = `translateY(${-sf.pos}px)`;
+  const max = sfMaxPos();
+  sfEl('sfProgress').style.width = (max > 0 ? sf.pos / max * 100 : 0) + '%';
+}
+
+function sfSetPlaying(p) {
+  sf.playing = !!(p && sf.text);
+  if (sf.raf) cancelAnimationFrame(sf.raf);
+  sf.raf = null; sf.last = null;
+  if (sf.playing) {
+    if (sf.pos >= sfMaxPos()) sf.pos = 0; // replay from the top once finished
+    sf.raf = requestAnimationFrame(sfStep);
+  }
+  sfEl('sfPlayBtn').textContent = sf.playing ? '⏸' : '▶';
+  sfEl('sfPlayBtn').classList.toggle('on', sf.playing);
+}
+
+function sfTogglePlay() {
+  if (!sf.text) { sfOpenEdit(); return; }
+  sfSetPlaying(!sf.playing);
+}
+
+function sfRewind() {
+  sfSetPlaying(false);
+  sf.pos = 0;
+  sfApplyPos();
+}
+
+function sfStep(ts) {
+  if (!sf.playing) return;
+  const dt = (ts - (sf.last ?? ts)) / 1000;
+  sf.last = ts;
+  sf.pos += sf.speed * dt;
+  const max = sfMaxPos();
+  if (sf.pos >= max) { sf.pos = max; sfApplyPos(); sfSetPlaying(false); return; }
+  sfApplyPos();
+  sf.raf = requestAnimationFrame(sfStep);
+}
+
+// Tap on the text = play/pause, drag = scroll (pauses while dragging, resumes after)
+function sfSetupBandGestures() {
+  const band = sfEl('sfBand');
+  if (band._bound) return;
+  band._bound = true;
+  let startY = 0, lastY = 0, startT = 0, moved = false, wasPlaying = false, active = false;
+  band.addEventListener('pointerdown', e => {
+    active = true; moved = false;
+    startY = lastY = e.clientY; startT = Date.now();
+    wasPlaying = sf.playing;
+    band.setPointerCapture(e.pointerId);
+  });
+  band.addEventListener('pointermove', e => {
+    if (!active) return;
+    if (!moved && Math.abs(e.clientY - startY) < 6) return;
+    if (!moved) { moved = true; if (sf.playing) sfSetPlaying(false); }
+    sf.pos = Math.max(0, Math.min(sfMaxPos(), sf.pos - (e.clientY - lastY)));
+    lastY = e.clientY;
+    sfApplyPos();
+  });
+  const end = () => {
+    if (!active) return;
+    active = false;
+    if (!moved && Date.now() - startT < 300) sfTogglePlay();
+    else if (moved && wasPlaying) sfSetPlaying(true);
+  };
+  band.addEventListener('pointerup', end);
+  band.addEventListener('pointercancel', end);
+}
+
+// ── Camera ──
+async function sfStartCamera() {
+  const msg = sfEl('sfCamMsg');
+  const showErr = t => { sfEl('sfCamMsgText').textContent = t; msg.classList.add('show'); };
+  if (!navigator.mediaDevices?.getUserMedia) {
+    showErr('Камера недоступна: нужен HTTPS и современный браузер');
+    return;
+  }
+  if (sf.stream) sf.stream.getTracks().forEach(t => t.stop());
+  sf.stream = null;
+  try {
+    sf.stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1920 }, frameRate: { ideal: 30 } },
+      audio: true
+    });
+  } catch (e) {
+    showErr(e.name === 'NotAllowedError'
+      ? 'Нет доступа к камере и микрофону. Разрешите их в настройках браузера.'
+      : 'Не удалось включить камеру: ' + (e.message || e.name));
+    return;
+  }
+  msg.classList.remove('show');
+  const v = sfEl('sfVideo');
+  v.srcObject = sf.stream;
+  v.play().catch(() => {});
+  v.onloadedmetadata = () => {
+    sfEl('sfInfo').textContent = `Камера ${v.videoWidth}×${v.videoHeight} · формат ${sfPickMime() || 'по умолчанию'}`;
+  };
+}
+
+function sfCameraAlive() {
+  return sf.stream && sf.stream.getVideoTracks().some(t => t.readyState === 'live');
+}
+
+function sfKeepAwake() {
+  if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(() => {});
+}
+
+// iOS kills the camera when the app goes to background — bring it back on return
+document.addEventListener('visibilitychange', () => {
+  if (role !== 'selfie' || document.visibilityState !== 'visible') return;
+  sfKeepAwake();
+  if (!sfCameraAlive() && !(sf.recorder && sf.recorder.state === 'recording')) sfStartCamera();
+});
+
+// ── Recording (raw camera stream: no text overlay, not mirrored) ──
+function sfPickMime() {
+  if (!window.MediaRecorder) return '';
+  return ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm']
+    .find(t => MediaRecorder.isTypeSupported(t)) || '';
+}
+
+function sfToggleRec() {
+  if (sf.recorder && sf.recorder.state === 'recording') { sf.recorder.stop(); return; }
+  if (!sfCameraAlive()) { sfStartCamera(); return; }
+  if (!window.MediaRecorder) { alert('Запись видео в этом браузере не поддерживается'); return; }
+
+  const mime = sfPickMime();
+  const chunks = [];
+  let rec;
+  try {
+    rec = new MediaRecorder(sf.stream, { ...(mime && { mimeType: mime }), videoBitsPerSecond: 8000000 });
+  } catch (e) {
+    alert('Не удалось начать запись: ' + (e.message || e.name));
+    return;
+  }
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  rec.onstop = () => {
+    sf.blobDur = (Date.now() - sf.recStart) / 1000;
+    sf.blob = new Blob(chunks, { type: rec.mimeType || mime || 'video/mp4' });
+    sf.recorder = null;
+    sfRecUi(false);
+    if (sf.blob.size) sfShowSave();
+  };
+  rec.start(1000);
+  sf.recorder = rec;
+  sf.recStart = Date.now();
+  sfRecUi(true);
+}
+
+function sfRecUi(on) {
+  sfEl('sfRecBtn').classList.toggle('recording', on);
+  clearInterval(sf.recTimer);
+  const timer = sfEl('sfTimer');
+  if (!on) { timer.textContent = ''; return; }
+  const tick = () => {
+    const s = Math.floor((Date.now() - sf.recStart) / 1000);
+    timer.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  };
+  tick();
+  sf.recTimer = setInterval(tick, 500);
+}
+
+function sfShowSave() {
+  const s = Math.round(sf.blobDur);
+  const mb = (sf.blob.size / 1048576).toFixed(1);
+  sf.saved = false;
+  sfEl('sfSaveMeta').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} · ${mb} МБ`;
+  sfEl('sfSave').classList.add('open');
+}
+
+async function sfSaveVideo() {
+  if (!sf.blob) return;
+  const ext = sf.blob.type.includes('mp4') ? 'mp4' : 'webm';
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  const name = `selfie-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.${ext}`;
+  const file = new File([sf.blob], name, { type: sf.blob.type });
+  // iOS: the share sheet has «Сохранить видео» → goes straight to Photos
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); sfMarkSaved(); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(file);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  sfMarkSaved();
+}
+
+function sfMarkSaved() {
+  sf.saved = true;
+  sfEl('sfSaveMeta').textContent += ' · сохранено ✓';
+}
+
+function sfCloseSave() {
+  if (!sf.saved && !confirm('Дубль не сохранён. Удалить его?')) return;
+  sf.blob = null;
+  sfEl('sfSave').classList.remove('open');
+}
+
+window.addEventListener('resize', () => { if (role === 'selfie') sfApplyStyle(); });
 </script>
 </body>
 </html>
