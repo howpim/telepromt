@@ -362,6 +362,12 @@
   }
   .sf-swatch.on { border-color: #fff; box-shadow: 0 0 0 2px #000 inset; }
   .sf-color-input { width: 32px; height: 32px; border: none; background: none; padding: 0; }
+  .sf-toggle {
+    flex: 1; background: transparent; border: 1px solid var(--border); color: #888;
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 9px 4px; cursor: pointer; -webkit-appearance: none;
+  }
+  .sf-toggle.on { border-color: var(--accent); color: var(--accent); background: rgba(232,255,0,0.08); }
   .sf-actions { display: flex; }
   .sf-actions button {
     flex: 1; background: transparent; border: none; border-right: 1px solid var(--border);
@@ -511,7 +517,8 @@
   <div class="sf-settings" id="sfSettings">
     <div class="sf-row"><span class="sf-label">Размер</span><input type="range" min="14" max="80" data-sf="fontSize"><span class="sf-val" data-sf-val="fontSize"></span></div>
     <div class="sf-row"><span class="sf-label">Сдвиг ↔</span><input type="range" min="-150" max="150" data-sf="offsetX"><span class="sf-val" data-sf-val="offsetX"></span></div>
-    <div class="sf-row"><span class="sf-label">Ширина</span><input type="range" min="120" max="440" data-sf="textWidth"><span class="sf-val" data-sf-val="textWidth"></span></div>
+    <div class="sf-row"><span class="sf-label">Интерв</span><input type="range" min="1" max="2.5" step="0.05" data-sf="lineHeight"><span class="sf-val" data-sf-val="lineHeight"></span></div>
+    <div class="sf-row"><span class="sf-label">Ширина</span><input type="range" min="120" max="440" data-sf="textWidth" id="sfWidthSlider"><span class="sf-val" data-sf-val="textWidth"></span></div>
     <div class="sf-row"><span class="sf-label">Скорость</span><input type="range" min="5" max="200" data-sf="speed"><span class="sf-val" data-sf-val="speed"></span></div>
     <div class="sf-row"><span class="sf-label">Высота</span><input type="range" min="10" max="60" data-sf="bandHeight"><span class="sf-val" data-sf-val="bandHeight"></span></div>
     <div class="sf-row"><span class="sf-label">Фон</span><input type="range" min="0" max="90" data-sf="bgAlpha"><span class="sf-val" data-sf-val="bgAlpha"></span></div>
@@ -525,6 +532,13 @@
         <button class="sf-swatch" data-color="#5ad8ff" style="background:#5ad8ff"></button>
         <button class="sf-swatch" data-color="#ff7ad9" style="background:#ff7ad9"></button>
         <input type="color" class="sf-color-input" id="sfColorInput">
+      </div>
+    </div>
+    <div class="sf-row">
+      <span class="sf-label">Переносы</span>
+      <div class="sf-swatches">
+        <button class="sf-toggle" data-reflow="1" onclick="sfSetReflow(true)">Авто</button>
+        <button class="sf-toggle" data-reflow="0" onclick="sfSetReflow(false)">Из файла</button>
       </div>
     </div>
     <div class="sf-actions">
@@ -1398,8 +1412,8 @@ function initMirrorScale() {
 // Standalone mode: own camera, own scroll loop, own settings. Never connects
 // to the server and never touches controller/display state.
 const SF_DEFAULTS = {
-  fontSize: 28, offsetX: 0, textWidth: 320, speed: 35,
-  bandHeight: 30, bgAlpha: 45, outline: 1.5, color: '#ffffff'
+  fontSize: 28, lineHeight: 1.3, offsetX: 0, textWidth: 320, speed: 35,
+  bandHeight: 30, bgAlpha: 45, outline: 1.5, color: '#ffffff', reflow: true
 };
 const sf = {
   ...SF_DEFAULTS, text: '',
@@ -1439,6 +1453,7 @@ function sfSaveSettings() {
 function sfFormat(key, v) {
   if (key === 'offsetX') return (v > 0 ? '+' : '') + v;
   if (key === 'bandHeight' || key === 'bgAlpha') return v + '%';
+  if (key === 'lineHeight') return (+v).toFixed(2);
   return v;
 }
 
@@ -1478,11 +1493,16 @@ function sfOutlineShadow(r) {
 
 function sfApplyStyle() {
   const band = sfEl('sfBand'), box = sfEl('sfBox'), text = sfEl('sfText');
+  // The box can't be wider than the screen — beyond that the sides just get cut off
+  const maxW = window.innerWidth;
+  sfEl('sfWidthSlider').max = maxW;
+  if (sf.textWidth > maxW) sf.textWidth = maxW;
   band.style.height = sf.bandHeight + '%';
   box.style.width = sf.textWidth + 'px';
   box.style.transform = `translateX(${sf.offsetX}px)`;
   box.style.background = `rgba(0,0,0,${sf.bgAlpha / 100})`;
   text.style.fontSize = sf.fontSize + 'px';
+  text.style.lineHeight = sf.lineHeight;
   text.style.color = sf.color;
   text.style.textShadow = sfOutlineShadow(sf.outline);
   // Let the last line scroll all the way up to the top of the band
@@ -1493,6 +1513,7 @@ function sfApplyStyle() {
   });
   document.querySelectorAll('[data-sf]').forEach(input => { input.value = sf[input.dataset.sf]; });
   document.querySelectorAll('.sf-swatch').forEach(b => b.classList.toggle('on', b.dataset.color === sf.color));
+  document.querySelectorAll('.sf-toggle').forEach(b => b.classList.toggle('on', (b.dataset.reflow === '1') === sf.reflow));
   sfEl('sfColorInput').value = sf.color;
 
   sf.pos = Math.min(sf.pos, sfMaxPos());
@@ -1511,9 +1532,24 @@ function sfToggleSettings() {
 }
 
 // ── Text & scroll ──
+// «Авто»: single line breaks from the file become spaces so the text reflows to the
+// band width; blank lines (paragraphs) stay. «Из файла»: lines exactly as written.
+function sfDisplayText() {
+  const t = sf.text.replace(/\r\n?/g, '\n');
+  if (!sf.reflow) return t;
+  return t.split(/\n[ \t]*\n\s*/).map(p => p.replace(/[ \t]*\n[ \t]*/g, ' ')).join('\n\n');
+}
+
+function sfSetReflow(on) {
+  sf.reflow = on;
+  sfEl('sfText').textContent = sfDisplayText();
+  sfSaveSettings();
+  sfApplyStyle();
+}
+
 function sfSetText(text, keepPos) {
   sf.text = text || '';
-  sfEl('sfText').textContent = sf.text;
+  sfEl('sfText').textContent = sfDisplayText();
   sfEl('sfEmpty').style.display = sf.text ? 'none' : '';
   if (!keepPos) sf.pos = 0;
   sfSetPlaying(false);
@@ -1530,7 +1566,7 @@ function sfOpenEdit() {
 
 function sfMaxPos() {
   const t = sfEl('sfText');
-  return Math.max(0, t.offsetHeight - sf.fontSize * 1.3);
+  return Math.max(0, t.offsetHeight - sf.fontSize * sf.lineHeight);
 }
 
 function sfApplyPos() {
@@ -1613,10 +1649,22 @@ async function sfStartCamera() {
   }
   if (sf.stream) sf.stream.getTracks().forEach(t => t.stop());
   sf.stream = null;
+  const portrait = window.innerHeight >= window.innerWidth;
   try {
     sf.stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1920 }, frameRate: { ideal: 30 } },
-      audio: true
+      video: {
+        facingMode: 'user',
+        width: { ideal: portrait ? 1080 : 1920 },
+        height: { ideal: portrait ? 1920 : 1080 },
+        aspectRatio: { ideal: portrait ? 9 / 16 : 16 / 9 },
+        frameRate: { ideal: 30 }
+      },
+      // Turn off the video-call voice processing (echo cancel / noise suppression / AGC):
+      // it is what makes browser-recorded voice sound flat
+      audio: {
+        echoCancellation: false, noiseSuppression: false, autoGainControl: false,
+        channelCount: { ideal: 2 }, sampleRate: { ideal: 48000 }
+      }
     });
   } catch (e) {
     showErr(e.name === 'NotAllowedError'
@@ -1628,9 +1676,28 @@ async function sfStartCamera() {
   const v = sfEl('sfVideo');
   v.srcObject = sf.stream;
   v.play().catch(() => {});
-  v.onloadedmetadata = () => {
-    sfEl('sfInfo').textContent = `Камера ${v.videoWidth}×${v.videoHeight} · формат ${sfPickMime() || 'по умолчанию'}`;
+  v.onloadedmetadata = async () => {
+    // Some devices read width/height in sensor (landscape) terms — if we got a
+    // landscape frame on a portrait screen, ask again with the sides swapped
+    if (portrait && v.videoWidth > v.videoHeight && !v._swapped) {
+      v._swapped = true;
+      try {
+        await sf.stream.getVideoTracks()[0].applyConstraints({
+          facingMode: 'user', width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 }
+        });
+      } catch {}
+    }
+    sfShowCamInfo();
   };
+  v.onresize = sfShowCamInfo;
+}
+
+function sfShowCamInfo() {
+  const v = sfEl('sfVideo');
+  const a = sf.stream && sf.stream.getAudioTracks()[0];
+  const as = a && a.getSettings ? a.getSettings() : {};
+  const audio = a ? ` · звук ${as.sampleRate ? Math.round(as.sampleRate / 1000) + 'кГц ' : ''}${as.channelCount || ''}${as.channelCount ? 'ch' : ''}${as.echoCancellation ? ' (обработка вкл)' : ''}` : ' · без звука';
+  sfEl('sfInfo').textContent = `Камера ${v.videoWidth}×${v.videoHeight}${audio} · ${sfPickMime() || 'формат по умолчанию'}`;
 }
 
 function sfCameraAlive() {
@@ -1664,7 +1731,9 @@ function sfToggleRec() {
   const chunks = [];
   let rec;
   try {
-    rec = new MediaRecorder(sf.stream, { ...(mime && { mimeType: mime }), videoBitsPerSecond: 8000000 });
+    rec = new MediaRecorder(sf.stream, {
+      ...(mime && { mimeType: mime }), videoBitsPerSecond: 12000000, audioBitsPerSecond: 192000
+    });
   } catch (e) {
     alert('Не удалось начать запись: ' + (e.message || e.name));
     return;
